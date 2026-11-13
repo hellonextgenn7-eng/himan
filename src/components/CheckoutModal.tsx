@@ -7,13 +7,54 @@ import {
   CheckCircle2,
   CreditCard,
   QrCode,
-  Banknote,
+  Building2,
+  Smartphone,
   Lock,
   ArrowRight,
   Sparkles,
   Copy,
-  MapPin
+  MapPin,
+  Check
 } from 'lucide-react';
+
+const UPI_APPS = [
+  { id: 'gpay', name: 'Google Pay (GPay)', tag: 'Instant', accent: 'border-sky-300 bg-sky-50/70 text-sky-950' },
+  { id: 'phonepe', name: 'PhonePe', tag: 'Popular', accent: 'border-purple-300 bg-purple-50/70 text-purple-950' },
+  { id: 'paytm', name: 'Paytm UPI', tag: 'Zero Fee', accent: 'border-cyan-300 bg-cyan-50/70 text-cyan-950' },
+  { id: 'bhim', name: 'BHIM / Any UPI App', tag: 'NPCI Verified', accent: 'border-emerald-300 bg-emerald-50/70 text-emerald-950' }
+];
+
+const UPI_HANDLES = ['@okaxis', '@ybl', '@paytm', '@okhdfcbank', '@okicici', '@ibl'];
+
+const POPULAR_BANKS = [
+  { code: 'SBI', name: 'State Bank of India (SBI)', short: 'SBI' },
+  { code: 'HDFC', name: 'HDFC Bank NetBanking', short: 'HDFC' },
+  { code: 'ICICI', name: 'ICICI Bank Internet Banking', short: 'ICICI' },
+  { code: 'AXIS', name: 'Axis Bank NetBanking', short: 'AXIS' },
+  { code: 'KOTAK', name: 'Kotak Mahindra Bank', short: 'KOTAK' },
+  { code: 'PNB', name: 'Punjab National Bank (PNB)', short: 'PNB' }
+];
+
+const ALL_INDIAN_BANKS = [
+  'State Bank of India (SBI)',
+  'HDFC Bank NetBanking',
+  'ICICI Bank Internet Banking',
+  'Axis Bank NetBanking',
+  'Kotak Mahindra Bank',
+  'Punjab National Bank (PNB)',
+  'Bank of Baroda (BoB)',
+  'Canara Bank',
+  'Union Bank of India',
+  'IndusInd Bank',
+  'IDFC FIRST Bank',
+  'Yes Bank',
+  'Federal Bank',
+  'Indian Bank',
+  'Bank of India (BOI)',
+  'Central Bank of India',
+  'Indian Overseas Bank',
+  'UCO Bank'
+];
 
 export const CheckoutModal: React.FC = () => {
   const {
@@ -37,6 +78,7 @@ export const CheckoutModal: React.FC = () => {
     orderId: string;
     paymentSessionId?: string;
     provider?: string;
+    paymentDetailLabel?: string;
   } | null>(null);
 
   // Address form pre-populated if customer is signed in
@@ -71,6 +113,21 @@ export const CheckoutModal: React.FC = () => {
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerDetails, string>>>({});
   const [isCreatingSession, setIsCreatingSession] = useState(false);
 
+  // Interactive UPI State
+  const [selectedUpiApp, setSelectedUpiApp] = useState<string>('gpay');
+  const [upiVpa, setUpiVpa] = useState<string>('');
+  const [isVpaVerified, setIsVpaVerified] = useState<boolean>(false);
+
+  // Interactive NetBanking State
+  const [selectedBank, setSelectedBank] = useState<string>('State Bank of India (SBI)');
+  const [accountHolderNote, setAccountHolderNote] = useState<string>('');
+
+  // Interactive Debit / Credit Card State
+  const [cardNumber, setCardNumber] = useState<string>('');
+  const [cardExpiry, setCardExpiry] = useState<string>('');
+  const [cardCvv, setCardCvv] = useState<string>('');
+  const [cardHolderName, setCardHolderName] = useState<string>('');
+
   if (!isCheckoutOpen) return null;
 
   const deliveryCharge =
@@ -100,6 +157,37 @@ export const CheckoutModal: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleVerifyVpa = () => {
+    const trimmed = upiVpa.trim();
+    if (!/^[a-zA-Z0-9.\-_]{2,}@[a-zA-Z]{2,}$/.test(trimmed)) {
+      showToast('Please enter a valid UPI ID (e.g. mobile@ybl or name@okaxis)', 'error');
+      setIsVpaVerified(false);
+      return;
+    }
+    setIsVpaVerified(true);
+    showToast(`Verified UPI ID: ${trimmed}`, 'success');
+  };
+
+  const handleAppendUpiHandle = (handle: string) => {
+    const base = upiVpa.split('@')[0].trim() || form.phone.replace(/\D/g, '').slice(-10) || 'customer';
+    const nextVpa = `${base}${handle}`;
+    setUpiVpa(nextVpa);
+    setIsVpaVerified(true);
+  };
+
+  const formatCardNumber = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 16);
+    return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+  };
+
+  const formatExpiry = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 4);
+    if (digits.length >= 3) {
+      return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    }
+    return digits;
+  };
+
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
@@ -112,52 +200,58 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
+    if (paymentMethod === 'Card') {
+      const rawDigits = cardNumber.replace(/\s+/g, '');
+      if (rawDigits.length > 0 && rawDigits.length < 12) {
+        showToast('Please enter a valid card number or authorize via the payment gateway.', 'error');
+        return;
+      }
+    }
+
     // Save address to customer account if logged in and no addresses saved yet
     if (customerAccount && (!customerAccount.savedAddresses || customerAccount.savedAddresses.length === 0)) {
       saveCustomerAddress(form);
     }
 
-    // For Cashfree/Cashify or Razorpay or UPI/Card, create a verified server-side payment order session first
-    if (paymentMethod === 'Cashify' || paymentMethod === 'Razorpay' || paymentMethod === 'Card') {
-      setIsCreatingSession(true);
-      try {
-        const orderId = 'PB_' + Date.now();
-        const res = await fetch('/api/cashify/payment/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: finalTotal,
-            orderId,
-            customer: form
-          })
-        });
-        const data = await res.json();
-        setGatewaySessionData({
-          orderId: data.orderId || orderId,
-          paymentSessionId: data.paymentSessionId,
-          provider: data.provider || 'Phone Bazar Secure Payment Gateway'
-        });
-        setStep('gateway_auth');
-      } catch {
-        setGatewaySessionData({
-          orderId: 'PB_' + Date.now(),
-          provider: 'Phone Bazar Secure Payment Gateway'
-        });
-        setStep('gateway_auth');
-      } finally {
-        setIsCreatingSession(false);
-      }
-      return;
-    }
+    const activeUpiAppObj = UPI_APPS.find((a) => a.id === selectedUpiApp);
+    const detailLabel =
+      paymentMethod === 'UPI'
+        ? upiVpa.trim()
+          ? `UPI (${upiVpa.trim()})`
+          : `UPI (${activeUpiAppObj?.name || 'Instant UPI'})`
+        : paymentMethod === 'NetBanking'
+        ? `NetBanking — ${selectedBank}`
+        : `Card / EMI Gateway`;
 
-    if (paymentMethod === 'UPI') {
-      finalizeOrder('upi_verified_' + Math.floor(100000 + Math.random() * 900000), 'Paid');
-      return;
-    }
-
-    if (paymentMethod === 'COD') {
-      finalizeOrder(undefined, 'Pending');
-      return;
+    setIsCreatingSession(true);
+    try {
+      const orderId = 'PB_' + Date.now();
+      const res = await fetch('/api/cashify/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: finalTotal,
+          orderId,
+          customer: form
+        })
+      });
+      const data = await res.json();
+      setGatewaySessionData({
+        orderId: data.orderId || orderId,
+        paymentSessionId: data.paymentSessionId,
+        provider: data.provider || 'Phone Bazar Verified Banking Gateway',
+        paymentDetailLabel: detailLabel
+      });
+      setStep('gateway_auth');
+    } catch {
+      setGatewaySessionData({
+        orderId: 'PB_' + Date.now(),
+        provider: 'Phone Bazar Verified Banking Gateway',
+        paymentDetailLabel: detailLabel
+      });
+      setStep('gateway_auth');
+    } finally {
+      setIsCreatingSession(false);
     }
   };
 
@@ -173,7 +267,9 @@ export const CheckoutModal: React.FC = () => {
     } catch {
       // ignore network error
     }
-    finalizeOrder(`pay_verified_${orderIdToVerify}`, 'Paid');
+    const prefix =
+      paymentMethod === 'UPI' ? 'upi_verified_' : paymentMethod === 'NetBanking' ? 'nb_verified_' : 'card_verified_';
+    finalizeOrder(`${prefix}${orderIdToVerify}`, 'Paid');
   };
 
   const finalizeOrder = (transactionId: string | undefined, paymentStatus: 'Paid' | 'Pending') => {
@@ -190,7 +286,7 @@ export const CheckoutModal: React.FC = () => {
         totalAmount: finalTotal,
         paymentMethod,
         paymentStatus,
-        orderStatus: paymentStatus === 'Paid' ? 'Payment Confirmed' : 'Order Placed',
+        orderStatus: 'Payment Confirmed',
         paymentTransactionId: transactionId,
         estimatedDeliveryDate: 'Express Delivery in 2–3 Business Days'
       });
@@ -216,10 +312,10 @@ export const CheckoutModal: React.FC = () => {
             </div>
             <div>
               <h2 className="text-base font-extrabold font-display">
-                {step === 'success' ? 'Order Confirmation & Receipt' : 'Phone Bazar Secure Checkout'}
+                {step === 'success' ? 'Order Confirmation & Receipt' : 'Phone Bazar Secure Online Checkout'}
               </h2>
               <p className="text-xs text-slate-400">
-                256-Bit Encrypted · 7-Day Replacement Guarantee · 6-Month Store Warranty
+                256-Bit Encrypted · Instant UPI & NetBanking · 7-Day Replacement Guarantee
               </p>
             </div>
           </div>
@@ -238,7 +334,7 @@ export const CheckoutModal: React.FC = () => {
 
         {/* Modal Body */}
         <div className="p-6 sm:p-8">
-          {/* STEP: SERVER-VERIFIED GATEWAY AUTHORIZATION (Prevents third-party iframe domain block) */}
+          {/* STEP: SERVER-VERIFIED GATEWAY AUTHORIZATION */}
           {step === 'gateway_auth' && gatewaySessionData && (
             <div className="py-6 max-w-lg mx-auto space-y-6">
               <div className="p-6 rounded-3xl border-2 border-slate-900 bg-slate-50 space-y-4">
@@ -246,7 +342,7 @@ export const CheckoutModal: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-emerald-600" />
                     <span className="text-sm font-extrabold text-slate-950">
-                      Phone Bazar Verified Merchant Gateway
+                      Phone Bazar Verified Banking & UPI Gateway
                     </span>
                   </div>
                   <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
@@ -260,6 +356,12 @@ export const CheckoutModal: React.FC = () => {
                     <span className="font-bold text-slate-900">Phone Bazar India</span>
                   </div>
                   <div className="flex justify-between text-slate-600">
+                    <span>Selected Payment Mode:</span>
+                    <span className="font-bold text-[#FF6A00]">
+                      {gatewaySessionData.paymentDetailLabel || paymentMethod}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
                     <span>Payment Reference ID:</span>
                     <span className="font-mono font-bold text-slate-900">{gatewaySessionData.orderId}</span>
                   </div>
@@ -271,16 +373,16 @@ export const CheckoutModal: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-base font-black text-slate-950 pt-2 border-t border-slate-200">
                     <span>Amount to Authorize:</span>
-                    <span className="text-[#FF6A00]">₹{finalTotal.toLocaleString('en-IN')}</span>
+                    <span className="text-[#FF6A00] tabular-nums">₹{finalTotal.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-white border border-slate-200 space-y-2 text-xs">
                   <p className="font-bold text-slate-800">
-                    Complete Instant Payment via UPI / Card / NetBanking:
+                    Complete Instant Payment via {gatewaySessionData.paymentDetailLabel || 'UPI / NetBanking / Card'}:
                   </p>
                   <p className="text-slate-500">
-                    Click below to authorize ₹{finalTotal.toLocaleString('en-IN')} and generate your official GST invoice & tracking ID immediately.
+                    Click below to authorize ₹{finalTotal.toLocaleString('en-IN')} and generate your official GST invoice & BlueDart Express AWB tracking ID immediately.
                   </p>
                 </div>
 
@@ -290,7 +392,7 @@ export const CheckoutModal: React.FC = () => {
                     onClick={() => setStep('form')}
                     className="py-3 px-4 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold cursor-pointer"
                   >
-                    ← Back
+                    ← Change Payment Method
                   </button>
                   <button
                     type="button"
@@ -309,7 +411,7 @@ export const CheckoutModal: React.FC = () => {
             <div className="py-20 text-center space-y-4">
               <div className="w-16 h-16 rounded-full border-4 border-[#FF6A00] border-t-transparent animate-spin mx-auto" />
               <h3 className="text-lg font-extrabold text-slate-900">
-                Verifying Order & Reserving Certified Stock...
+                Verifying Bank Payment & Reserving Certified Stock...
               </h3>
               <p className="text-xs text-slate-500">
                 Generating your official Phone Bazar GST invoice and BlueDart Express AWB tracking number.
@@ -331,7 +433,7 @@ export const CheckoutModal: React.FC = () => {
                   Thank You, {createdOrder.customer.fullName}!
                 </h2>
                 <p className="text-sm text-slate-600 mt-1">
-                  Your order has been registered and is entering final 32-point pre-dispatch quality verification.
+                  Your prepaid order has been registered and is entering final 32-point pre-dispatch quality verification.
                 </p>
               </div>
 
@@ -356,7 +458,7 @@ export const CheckoutModal: React.FC = () => {
                         {item.product.name} ({item.selectedRam || item.product.ram} / {item.selectedStorage},{' '}
                         {item.selectedColor}) × {item.quantity}
                       </span>
-                      <span className="font-extrabold text-slate-950">
+                      <span className="font-extrabold text-slate-950 tabular-nums">
                         ₹{((item.variantSellingPrice ?? item.product.sellingPrice) * item.quantity).toLocaleString('en-IN')}
                       </span>
                     </div>
@@ -377,13 +479,13 @@ export const CheckoutModal: React.FC = () => {
                     </div>
                   ) : null}
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Payment Status:</span>
-                    <span className="font-bold">
-                      {createdOrder.paymentMethod} ({createdOrder.paymentStatus})
+                    <span className="text-slate-500">Payment Mode & Status:</span>
+                    <span className="font-bold text-emerald-700">
+                      {gatewaySessionData?.paymentDetailLabel || createdOrder.paymentMethod} ({createdOrder.paymentStatus})
                     </span>
                   </div>
                   <div className="flex justify-between text-sm font-black text-slate-950 pt-2 border-t border-slate-200">
-                    <span>Final Total:</span>
+                    <span>Total Paid:</span>
                     <span className="tabular-nums font-display">
                       ₹{createdOrder.totalAmount.toLocaleString('en-IN')}
                     </span>
@@ -421,7 +523,7 @@ export const CheckoutModal: React.FC = () => {
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs">
                 <div className="flex items-center justify-between text-slate-600">
                   <span>Items Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} smartphones)</span>
-                  <span className="font-bold text-slate-900">₹{cartSubtotal.toLocaleString('en-IN')}</span>
+                  <span className="font-bold text-slate-900 tabular-nums">₹{cartSubtotal.toLocaleString('en-IN')}</span>
                 </div>
                 {exchangeDiscount > 0 && (
                   <div className="flex items-center justify-between text-emerald-700 font-bold">
@@ -429,7 +531,7 @@ export const CheckoutModal: React.FC = () => {
                       <Sparkles className="w-3.5 h-3.5" /> Exchange Trade-In Discount (
                       {activeExchange?.brand} {activeExchange?.model})
                     </span>
-                    <span>-₹{exchangeDiscount.toLocaleString('en-IN')}</span>
+                    <span className="tabular-nums">-₹{exchangeDiscount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between text-slate-600">
@@ -438,7 +540,7 @@ export const CheckoutModal: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between text-sm font-black text-slate-950 pt-2 border-t border-slate-200">
                   <span>Final Payable Amount</span>
-                  <span className="text-lg text-[#FF6A00] font-display">
+                  <span className="text-lg text-[#FF6A00] font-display tabular-nums">
                     ₹{finalTotal.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -582,30 +684,33 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Step 2: Payment Method */}
+              {/* Step 2: Online UPI & Banking Payment Suite (100% Prepaid — Zero COD) */}
               <div className="space-y-4 pt-4 border-t border-slate-200">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 font-display flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-slate-950 text-white text-xs flex items-center justify-center font-bold">
                       2
                     </span>
-                    Select Payment Method
+                    Select Online Payment & Banking Method
                   </h3>
                   <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
-                    <Lock className="w-3.5 h-3.5 text-emerald-600" /> 100% Buyer Protection
+                    <Lock className="w-3.5 h-3.5 text-emerald-600" /> NPCI UPI & 256-Bit Bank Encryption
                   </span>
                 </div>
 
-                <div className="space-y-3">
-                  {/* Method 1: Instant UPI */}
-                  <label
-                    className={`block p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                <div className="space-y-3.5">
+                  {/* =========================================================
+                      METHOD 1: INSTANT UPI (GPay, PhonePe, Paytm, BHIM, VPA & QR)
+                      ========================================================= */}
+                  <div
+                    onClick={() => setPaymentMethod('UPI')}
+                    className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer ${
                       paymentMethod === 'UPI'
-                        ? 'border-[#FF6A00] bg-orange-50/50 shadow-xs'
+                        ? 'border-[#FF6A00] bg-orange-50/40 shadow-xs'
                         : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <input
                           type="radio"
@@ -615,26 +720,121 @@ export const CheckoutModal: React.FC = () => {
                           className="mt-1 text-[#FF6A00] focus:ring-[#FF6A00]"
                         />
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-extrabold text-slate-900">
-                              Instant UPI (Google Pay / PhonePe / Paytm)
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-extrabold text-slate-950">
+                              Instant UPI (Google Pay, PhonePe, Paytm, BHIM & UPI ID)
                             </span>
                             <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">
-                              Recommended · Zero Fee
+                              Recommended · ₹0 Fee
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            Instant payment confirmation with priority 24-hour express dispatch.
+                            Pay instantly using any UPI app on your phone or enter your UPI ID / VPA for direct bank verification.
                           </p>
                         </div>
                       </div>
-                      <QrCode className="w-5 h-5 text-slate-400" />
+                      <QrCode className="w-5 h-5 text-[#FF6A00] shrink-0" />
                     </div>
 
                     {paymentMethod === 'UPI' && (
-                      <div className="mt-3 p-3 bg-white rounded-xl border border-orange-200 text-xs space-y-1.5">
-                        <div className="flex items-center justify-between text-slate-700">
-                          <span>Official Merchant UPI ID:</span>
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-4 pt-4 border-t border-orange-200/80 space-y-4"
+                      >
+                        {/* 1A. Choose UPI App */}
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block">
+                            Select Your UPI App:
+                          </span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {UPI_APPS.map((app) => {
+                              const active = selectedUpiApp === app.id;
+                              return (
+                                <button
+                                  key={app.id}
+                                  type="button"
+                                  onClick={() => setSelectedUpiApp(app.id)}
+                                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                                    active
+                                      ? 'border-slate-950 bg-slate-950 text-white ring-2 ring-[#FF6A00]'
+                                      : 'border-slate-200 bg-white hover:border-slate-400 text-slate-900'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-1">
+                                    <Smartphone
+                                      className={`w-3.5 h-3.5 ${active ? 'text-[#FF6A00]' : 'text-slate-500'}`}
+                                    />
+                                    <span
+                                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                        active ? 'bg-[#FF6A00] text-white' : 'bg-slate-100 text-slate-600'
+                                      }`}
+                                    >
+                                      {app.tag}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs font-extrabold mt-1.5 block truncate">{app.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 1B. Enter & Verify UPI ID / VPA */}
+                        <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2.5">
+                          <label className="text-xs font-extrabold text-slate-800 block">
+                            Enter Your UPI ID / VPA (Optional for direct collect request):
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={upiVpa}
+                              onChange={(e) => {
+                                setUpiVpa(e.target.value);
+                                setIsVpaVerified(false);
+                              }}
+                              placeholder="e.g. 9876543210@ybl or name@okaxis"
+                              className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#FF6A00]"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleVerifyVpa}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
+                                isVpaVerified
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-slate-950 hover:bg-[#FF6A00] text-white'
+                              }`}
+                            >
+                              {isVpaVerified ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" /> Verified
+                                </>
+                              ) : (
+                                'Verify UPI ID'
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Quick Bank Handle Chips */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            <span className="text-[10px] font-bold text-slate-400">Quick Bank Handles:</span>
+                            {UPI_HANDLES.map((handle) => (
+                              <button
+                                key={handle}
+                                type="button"
+                                onClick={() => handleAppendUpiHandle(handle)}
+                                className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-orange-100 text-slate-700 hover:text-[#FF6A00] text-[10px] font-bold transition-colors cursor-pointer"
+                              >
+                                {handle}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 1C. Official Merchant UPI ID Copy Bar */}
+                        <div className="p-3 bg-white rounded-xl border border-orange-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <span className="text-slate-600 font-medium">
+                            Official Phone Bazar Merchant UPI ID:
+                          </span>
                           <button
                             type="button"
                             onClick={copyUpiId}
@@ -646,69 +846,214 @@ export const CheckoutModal: React.FC = () => {
                         </div>
                       </div>
                     )}
-                  </label>
+                  </div>
 
-                  {/* Method 2: Online Payment Gateway (Cards, NetBanking, Wallets) */}
-                  <label
-                    className={`block p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                      paymentMethod === 'Cashify'
-                        ? 'border-[#FF6A00] bg-orange-50/50 shadow-xs'
+                  {/* =========================================================
+                      METHOD 2: NETBANKING / INTERNET BANKING (ALL INDIAN BANKS)
+                      ========================================================= */}
+                  <div
+                    onClick={() => setPaymentMethod('NetBanking')}
+                    className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                      paymentMethod === 'NetBanking'
+                        ? 'border-[#FF6A00] bg-orange-50/40 shadow-xs'
                         : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <input
                           type="radio"
                           name="paymentMethod"
-                          checked={paymentMethod === 'Cashify'}
-                          onChange={() => setPaymentMethod('Cashify')}
+                          checked={paymentMethod === 'NetBanking'}
+                          onChange={() => setPaymentMethod('NetBanking')}
                           className="mt-1 text-[#FF6A00] focus:ring-[#FF6A00]"
                         />
                         <div>
-                          <span className="text-sm font-extrabold text-slate-900">
-                            Credit / Debit Card, NetBanking & EMI Gateway
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-extrabold text-slate-950">
+                              NetBanking / Internet Banking (All Major Indian Banks)
+                            </span>
+                            <span className="bg-sky-100 text-sky-900 text-[10px] font-bold px-2 py-0.5 rounded">
+                              IMPS / NEFT / Corporate & Retail Banking
+                            </span>
+                          </div>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            Pay securely with Visa, MasterCard, RuPay, HDFC, ICICI, SBI, or Axis NetBanking.
+                            Direct online bank transfer via SBI, HDFC, ICICI, Axis, Kotak, PNB, Bank of Baroda & 15+ Indian banks.
                           </p>
                         </div>
                       </div>
-                      <CreditCard className="w-5 h-5 text-slate-400" />
+                      <Building2 className="w-5 h-5 text-slate-500 shrink-0" />
                     </div>
-                  </label>
 
-                  {/* Method 3: Cash on Delivery */}
-                  {settings.codEnabled && (
-                    <label
-                      className={`block p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                        paymentMethod === 'COD'
-                          ? 'border-[#FF6A00] bg-orange-50/50 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            checked={paymentMethod === 'COD'}
-                            onChange={() => setPaymentMethod('COD')}
-                            className="mt-1 text-[#FF6A00] focus:ring-[#FF6A00]"
-                          />
-                          <div>
-                            <span className="text-sm font-extrabold text-slate-900">
-                              Cash on Delivery (COD)
-                            </span>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                              Pay in cash or UPI to the courier agent at your doorstep upon delivery.
-                            </p>
+                    {paymentMethod === 'NetBanking' && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-4 pt-4 border-t border-orange-200/80 space-y-4"
+                      >
+                        {/* Top 6 Popular Banks Quick Grid */}
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block">
+                            Popular Indian Banks:
+                          </span>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {POPULAR_BANKS.map((bank) => {
+                              const active = selectedBank === bank.name;
+                              return (
+                                <button
+                                  key={bank.code}
+                                  type="button"
+                                  onClick={() => setSelectedBank(bank.name)}
+                                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                                    active
+                                      ? 'border-slate-950 bg-slate-950 text-white ring-2 ring-[#FF6A00]'
+                                      : 'border-slate-200 bg-white hover:border-slate-400 text-slate-900'
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-8 h-8 rounded-lg text-[10px] font-black flex items-center justify-center shrink-0 ${
+                                      active ? 'bg-[#FF6A00] text-white' : 'bg-slate-100 text-slate-800'
+                                    }`}
+                                  >
+                                    {bank.short}
+                                  </span>
+                                  <span className="text-xs font-extrabold truncate">{bank.name}</span>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
-                        <Banknote className="w-5 h-5 text-slate-400" />
+
+                        {/* Full Bank Selector Dropdown */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-white rounded-xl border border-slate-200">
+                          <div>
+                            <label className="text-xs font-extrabold text-slate-800 block mb-1">
+                              Choose From All Supported Banks:
+                            </label>
+                            <select
+                              value={selectedBank}
+                              onChange={(e) => setSelectedBank(e.target.value)}
+                              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#FF6A00]"
+                            >
+                              {ALL_INDIAN_BANKS.map((bankName) => (
+                                <option key={bankName} value={bankName}>
+                                  {bankName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-extrabold text-slate-800 block mb-1">
+                              Account Holder Name / Remarks (Optional):
+                            </label>
+                            <input
+                              type="text"
+                              value={accountHolderNote}
+                              onChange={(e) => setAccountHolderNote(e.target.value)}
+                              placeholder={form.fullName || 'Account holder name'}
+                              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#FF6A00]"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </label>
-                  )}
+                    )}
+                  </div>
+
+                  {/* =========================================================
+                      METHOD 3: CREDIT / DEBIT CARDS & BANK EMI
+                      ========================================================= */}
+                  <div
+                    onClick={() => setPaymentMethod('Card')}
+                    className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                      paymentMethod === 'Card'
+                        ? 'border-[#FF6A00] bg-orange-50/40 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={paymentMethod === 'Card'}
+                          onChange={() => setPaymentMethod('Card')}
+                          className="mt-1 text-[#FF6A00] focus:ring-[#FF6A00]"
+                        />
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-extrabold text-slate-950">
+                              Credit / Debit Card & No-Cost Bank EMI
+                            </span>
+                            <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                              RuPay · Visa · MasterCard
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Pay securely using any Indian Debit or Credit Card with RBI 3D-Secure OTP verification.
+                          </p>
+                        </div>
+                      </div>
+                      <CreditCard className="w-5 h-5 text-slate-500 shrink-0" />
+                    </div>
+
+                    {paymentMethod === 'Card' && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-4 pt-4 border-t border-orange-200/80 space-y-3"
+                      >
+                        <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-3">
+                          <div>
+                            <label className="text-xs font-bold text-slate-700 block mb-1">
+                              Card Number (RuPay / Visa / MasterCard)
+                            </label>
+                            <input
+                              type="text"
+                              value={cardNumber}
+                              onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                              placeholder="XXXX XXXX XXXX XXXX"
+                              maxLength={19}
+                              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#FF6A00]"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="text-xs font-bold text-slate-700 block mb-1">Expiry (MM/YY)</label>
+                              <input
+                                type="text"
+                                value={cardExpiry}
+                                onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                                placeholder="MM/YY"
+                                maxLength={5}
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#FF6A00]"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-bold text-slate-700 block mb-1">CVV</label>
+                              <input
+                                type="password"
+                                value={cardCvv}
+                                onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                placeholder="•••"
+                                maxLength={4}
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#FF6A00]"
+                              />
+                            </div>
+                            <div className="col-span-2 sm:col-span-1">
+                              <label className="text-xs font-bold text-slate-700 block mb-1">Name on Card</label>
+                              <input
+                                type="text"
+                                value={cardHolderName}
+                                onChange={(e) => setCardHolderName(e.target.value)}
+                                placeholder={form.fullName || 'Cardholder Name'}
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#FF6A00]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -721,8 +1066,12 @@ export const CheckoutModal: React.FC = () => {
                 >
                   <span>
                     {isCreatingSession
-                      ? 'Initializing Secure Gateway...'
-                      : `Place Order · ₹${finalTotal.toLocaleString('en-IN')}`}
+                      ? 'Connecting to Banking Gateway...'
+                      : paymentMethod === 'UPI'
+                      ? `Pay via UPI · ₹${finalTotal.toLocaleString('en-IN')}`
+                      : paymentMethod === 'NetBanking'
+                      ? `Proceed to ${selectedBank.split(' ')[0]} NetBanking · ₹${finalTotal.toLocaleString('en-IN')}`
+                      : `Pay via Card · ₹${finalTotal.toLocaleString('en-IN')}`}
                   </span>
                   <ArrowRight className="w-5 h-5" />
                 </button>

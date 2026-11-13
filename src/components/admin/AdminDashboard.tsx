@@ -880,7 +880,7 @@ export const AdminDashboard: React.FC = () => {
             <div>
               <h3 className="text-lg font-bold text-white font-display">Store Settings & Payment Configuration</h3>
               <p className="text-xs text-slate-400">
-                Update brand details, official contact numbers, Razorpay API credentials, and Cash on Delivery rules.
+                Update brand details, official contact numbers, UPI / NetBanking settings, and payment gateway credentials.
               </p>
             </div>
 
@@ -997,17 +997,8 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
-                  <input
-                    type="checkbox"
-                    id="codEnabledToggle"
-                    checked={settingsForm.codEnabled}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, codEnabled: e.target.checked })}
-                    className="text-[#FF6A00] focus:ring-[#FF6A00]"
-                  />
-                  <label htmlFor="codEnabledToggle" className="text-xs text-slate-300 font-semibold cursor-pointer">
-                    Enable Cash on Delivery (COD) for customer checkouts
-                  </label>
+                <div className="pt-2 text-xs text-emerald-400 font-semibold">
+                  ✓ 100% Online Prepaid Checkout Active (Instant UPI, NetBanking & Credit/Debit Cards)
                 </div>
               </div>
 

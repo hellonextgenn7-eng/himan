@@ -102,18 +102,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="bg-slate-950 text-slate-300 text-xs py-2 px-4 border-b border-slate-800 text-center flex items-center justify-center gap-2">
           <span className="inline-block w-2 h-2 rounded-full bg-[#FF6A00]" />
           <p className="font-medium truncate max-w-4xl">{settings.announcementText}</p>
-          {activeExchange && (
-            <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-300 text-[11px] font-bold">
-              <Sparkles className="w-3 h-3" /> Exchange Active: -₹
-              {activeExchange.estimatedValue.toLocaleString('en-IN')}
-            </span>
-          )}
         </div>
       )}
 
       {/* Main Header Navigation */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 transition-all shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-3 lg:gap-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-3 lg:gap-5">
           {/* 1. Brand Logo */}
           <div className="flex items-center gap-2.5 shrink-0">
             <a
@@ -122,108 +116,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 e.preventDefault();
                 scrollTo('top');
               }}
-              className="group flex items-center gap-2 whitespace-nowrap"
+              className="group flex items-center gap-2.5 whitespace-nowrap"
             >
-              <div className="w-9 h-9 rounded-xl bg-slate-950 flex items-center justify-center text-white shadow-sm group-hover:bg-[#FF6A00] transition-colors">
-                <Smartphone className="w-5 h-5 text-[#FF6A00] group-hover:text-white transition-colors" />
-              </div>
+              <img
+                src="/assets/aistudio/WhatsApp_Image_2026-11-13_at_5.05.27_PM_f2187aef.jpeg"
+                alt="Phone Bazar Official Logo"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0 group-hover:scale-105 transition-transform"
+              />
               <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-950 font-display">
                 PHONE <span className="text-[#FF6A00]">BAZAR</span>
               </span>
             </a>
           </div>
 
-          {/* 2. Integrated Header Search Bar with Autocomplete Suggestions */}
-          <div ref={searchContainerRef} className="hidden md:block relative flex-1 max-w-md">
-            <form onSubmit={handleHeaderSearchSubmit} className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={headerSearch}
-                onFocus={() => setShowSuggestions(true)}
-                onChange={(e) => {
-                  setHeaderSearch(e.target.value);
-                  onSearchChange?.(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                placeholder="Search phones, brand, 8GB RAM, 256GB..."
-                className="w-full pl-9 pr-16 py-2 bg-slate-100 hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-[#FF6A00] rounded-xl text-xs font-semibold text-slate-900 focus:outline-none transition-all"
-              />
-              {headerSearch ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHeaderSearch('');
-                    onSearchChange?.('');
-                    setShowSuggestions(false);
-                  }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 hover:text-slate-700 cursor-pointer"
-                >
-                  Clear
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg bg-slate-950 text-white text-[10px] font-bold cursor-pointer"
-                >
-                  Go
-                </button>
-              )}
-            </form>
-
-            {/* Autocomplete Dropdown */}
-            {showSuggestions && headerSearch.trim().length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-                {suggestions.length > 0 ? (
-                  <div className="divide-y divide-slate-100">
-                    {suggestions.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setShowSuggestions(false);
-                          openProductPage(item);
-                        }}
-                        className="w-full p-2.5 hover:bg-slate-50 flex items-center justify-between gap-3 text-left transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <img
-                            src={item.images?.[0]}
-                            alt={item.name}
-                            referrerPolicy="no-referrer"
-                            onError={handleImageError}
-                            className="w-10 h-10 object-contain rounded-lg bg-slate-50 border border-slate-200 p-1 shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <p className="text-xs font-extrabold text-slate-950 truncate">{item.name}</p>
-                            <p className="text-[11px] text-slate-500">
-                              {item.brand} · {item.ram} / {item.storage} · {item.condition}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-xs font-black text-[#FF6A00] shrink-0">
-                          ₹{item.sellingPrice.toLocaleString('en-IN')}
-                        </span>
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={handleHeaderSearchSubmit}
-                      className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-center text-xs font-extrabold text-[#FF6A00] cursor-pointer"
-                    >
-                      View all matching smartphones for "{headerSearch}" →
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-xs text-slate-500">
-                    No smartphones found matching "{headerSearch}".
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* 3. Desktop Navigation Links */}
+          {/* 2. Desktop Navigation Links */}
           <nav className="hidden xl:flex items-center gap-5 text-xs font-extrabold text-slate-700">
             <button
               onClick={() => scrollTo('top')}
@@ -248,13 +154,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="hover:text-[#FF6A00] transition-colors whitespace-nowrap cursor-pointer"
             >
               Deals
-            </button>
-            <button
-              onClick={() => setIsExchangeModalOpen(true)}
-              className="hover:text-[#FF6A00] transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1 text-slate-900"
-            >
-              <ArrowRightLeft className="w-3.5 h-3.5 text-[#FF6A00]" />
-              <span>Exchange Your Phone</span>
             </button>
             <button
               onClick={() => setIsOrderTrackingOpen(true)}
@@ -283,11 +182,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* Account Icon */}
+            {/* Account Icon (Desktop/Tablet - Mobile uses Bottom Nav) */}
             <button
               type="button"
               onClick={() => openAccountModal('overview')}
-              className="p-2.5 text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+              className="hidden md:flex p-2.5 text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer items-center gap-1.5"
               title={customerAccount ? `Account (${customerAccount.fullName})` : 'Login / My Account'}
               aria-label="Account"
             >
@@ -315,11 +214,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* Shopping Cart Button */}
+            {/* Shopping Cart Button (Desktop/Tablet - Mobile uses Bottom Nav) */}
             <button
               type="button"
               onClick={() => setIsCartOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-950 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+              className="hidden md:flex items-center gap-2 px-3.5 py-2.5 bg-slate-950 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
               aria-label="Shopping Cart"
             >
               <ShoppingBag className="w-4 h-4 text-[#FF6A00]" />
@@ -389,15 +288,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="text-left p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-extrabold text-[#FF6A00]"
               >
                 Best Deals
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setIsExchangeModalOpen(true);
-                }}
-                className="text-left p-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-xs font-extrabold text-slate-950"
-              >
-                Exchange Your Phone
               </button>
               <button
                 onClick={() => {

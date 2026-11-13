@@ -12,7 +12,8 @@ import {
   Layers,
   X,
   Scale,
-  Filter
+  Check,
+  ArrowUpDown
 } from 'lucide-react';
 import { matchesSearchQuery } from '../utils/search';
 
@@ -28,10 +29,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   selectedBrand,
   onSelectBrand,
   searchQuery = '',
-  onSearchChange,
   onClearSearch
 }) => {
-  const { products, compareList, setIsCompareModalOpen, clearCompare } = useStore();
+  const { products, compareList, setIsCompareModalOpen } = useStore();
 
   // 10-Point Filter States
   // 1. Brand is passed via selectedBrand / onSelectBrand
@@ -59,8 +59,20 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [activeTab, setActiveTab] = useState<'all' | 'deals' | 'latest'>('all');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [viewMode, setViewMode] = useState<'paginated' | 'all'>('paginated');
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const itemsPerPage = 24;
+
+  // Prevent background scrolling when filter drawer/sheet is open
+  useEffect(() => {
+    if (isFilterDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isFilterDrawerOpen]);
 
   // Reset to page 1 when search query or any of the 10 filters change
   useEffect(() => {
@@ -229,19 +241,120 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     }
   };
 
-  const activeFilterCount = [
-    selectedBrand !== 'all',
-    selectedPriceBracket !== 'all',
-    selectedStorage !== 'all',
-    selectedRam !== 'all',
-    selectedBatteryHealth !== 'all',
-    selectedCondition !== 'all',
-    selectedScreenSize !== 'all',
-    selectedProcessor !== 'all',
-    selectedOs !== 'all',
-    selectedAvailability !== 'all',
-    Boolean(searchQuery && searchQuery.trim())
-  ].filter(Boolean).length;
+  const priceBracketLabels: Record<string, string> = {
+    'under-15k': 'Under ₹15,000',
+    '15k-25k': '₹15,000 – ₹25,000',
+    '25k-40k': '₹25,000 – ₹40,000',
+    '40k-60k': '₹40,000 – ₹60,000',
+    'above-60k': 'Above ₹60,000'
+  };
+
+  const screenSizeLabels: Record<string, string> = {
+    compact: 'Compact (<6.3")',
+    standard: 'Standard (6.3"–6.65")',
+    large: 'Large (>6.65")'
+  };
+
+  // Active filter descriptors for badge count and removable chips
+  const activeFilterChips = useMemo(() => {
+    const chips: { key: string; label: string; onRemove: () => void }[] = [];
+
+    if (searchQuery && searchQuery.trim()) {
+      chips.push({
+        key: 'search',
+        label: `Search: "${searchQuery.trim()}"`,
+        onRemove: () => onClearSearch?.()
+      });
+    }
+    if (selectedBrand !== 'all') {
+      chips.push({
+        key: 'brand',
+        label: `Brand: ${selectedBrand}`,
+        onRemove: () => onSelectBrand('all')
+      });
+    }
+    if (selectedPriceBracket !== 'all') {
+      chips.push({
+        key: 'price',
+        label: `Price: ${priceBracketLabels[selectedPriceBracket] || selectedPriceBracket}`,
+        onRemove: () => setSelectedPriceBracket('all')
+      });
+    }
+    if (selectedCondition !== 'all') {
+      chips.push({
+        key: 'condition',
+        label: `Condition: ${selectedCondition}`,
+        onRemove: () => setSelectedCondition('all')
+      });
+    }
+    if (selectedStorage !== 'all') {
+      chips.push({
+        key: 'storage',
+        label: `Storage: ${selectedStorage}`,
+        onRemove: () => setSelectedStorage('all')
+      });
+    }
+    if (selectedRam !== 'all') {
+      chips.push({
+        key: 'ram',
+        label: `RAM: ${selectedRam}`,
+        onRemove: () => setSelectedRam('all')
+      });
+    }
+    if (selectedBatteryHealth !== 'all') {
+      chips.push({
+        key: 'battery',
+        label: `Battery: ${selectedBatteryHealth}%`,
+        onRemove: () => setSelectedBatteryHealth('all')
+      });
+    }
+    if (selectedOs !== 'all') {
+      chips.push({
+        key: 'os',
+        label: `OS: ${selectedOs}`,
+        onRemove: () => setSelectedOs('all')
+      });
+    }
+    if (selectedProcessor !== 'all') {
+      chips.push({
+        key: 'processor',
+        label: `Chip: ${selectedProcessor}`,
+        onRemove: () => setSelectedProcessor('all')
+      });
+    }
+    if (selectedScreenSize !== 'all') {
+      chips.push({
+        key: 'screen',
+        label: `Display: ${screenSizeLabels[selectedScreenSize] || selectedScreenSize}`,
+        onRemove: () => setSelectedScreenSize('all')
+      });
+    }
+    if (selectedAvailability !== 'all') {
+      chips.push({
+        key: 'availability',
+        label: 'In Stock Only',
+        onRemove: () => setSelectedAvailability('all')
+      });
+    }
+
+    return chips;
+  }, [
+    searchQuery,
+    selectedBrand,
+    selectedPriceBracket,
+    selectedCondition,
+    selectedStorage,
+    selectedRam,
+    selectedBatteryHealth,
+    selectedOs,
+    selectedProcessor,
+    selectedScreenSize,
+    selectedAvailability,
+    onClearSearch,
+    onSelectBrand
+  ]);
+
+  const activeFilterCount = activeFilterChips.length;
 
   const handleResetFilters = () => {
     onSelectBrand('all');
@@ -289,496 +402,601 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     { id: 'iQOO', label: 'iQOO' }
   ];
 
-  // Shared 10-Point Filter Panel UI (used in Desktop Sidebar & Mobile Drawer)
-  const renderTenPointFilters = () => (
-    <div className="space-y-5 text-xs">
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-2 font-extrabold text-sm text-slate-950">
-          <Filter className="w-4 h-4 text-[#FF6A00]" />
-          <span>10-Point Smart Filters</span>
-        </div>
-        {activeFilterCount > 0 && (
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="text-xs font-extrabold text-rose-600 hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <RotateCcw className="w-3 h-3" /> Clear All ({activeFilterCount})
-          </button>
-        )}
-      </div>
+  const priceOptions = [
+    { id: 'all', label: 'All Prices' },
+    { id: 'under-15k', label: 'Under ₹15,000' },
+    { id: '15k-25k', label: '₹15,000 – ₹25,000' },
+    { id: '25k-40k', label: '₹25,000 – ₹40,000' },
+    { id: '40k-60k', label: '₹40,000 – ₹60,000' },
+    { id: 'above-60k', label: 'Above ₹60,000' }
+  ];
 
-      {/* 1. Brand */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">1. Brand</label>
-        <select
-          value={selectedBrand}
-          onChange={(e) => onSelectBrand(e.target.value)}
-          className="w-full p-2.5 rounded-xl bg-white border border-slate-200 font-bold text-slate-800 cursor-pointer"
-        >
-          {brandOptions.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* 2. Price Range */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">
-          2. Price Range
-        </label>
-        <select
-          value={selectedPriceBracket}
-          onChange={(e) => setSelectedPriceBracket(e.target.value)}
-          className="w-full p-2.5 rounded-xl bg-white border border-slate-200 font-bold text-slate-800 cursor-pointer"
-        >
-          <option value="all">All Price Ranges</option>
-          <option value="under-15k">Under ₹15,000</option>
-          <option value="15k-25k">₹15,000 – ₹25,000</option>
-          <option value="25k-40k">₹25,000 – ₹40,000</option>
-          <option value="40k-60k">₹40,000 – ₹60,000</option>
-          <option value="above-60k">Above ₹60,000</option>
-        </select>
-      </div>
-
-      {/* 3. Internal Storage */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">
-          3. Internal Storage
-        </label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {['all', '64GB', '128GB', '256GB', '512GB'].map((st) => (
-            <button
-              key={st}
-              type="button"
-              onClick={() => setSelectedStorage(st)}
-              className={`py-2 px-2 rounded-lg font-bold border transition-all cursor-pointer ${
-                selectedStorage === st
-                  ? 'bg-slate-950 text-white border-slate-950'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
-              }`}
-            >
-              {st === 'all' ? 'All' : st}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 4. RAM */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">4. RAM</label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {['all', '4GB', '6GB', '8GB', '12GB'].map((ram) => (
-            <button
-              key={ram}
-              type="button"
-              onClick={() => setSelectedRam(ram)}
-              className={`py-2 px-2 rounded-lg font-bold border transition-all cursor-pointer ${
-                selectedRam === ram
-                  ? 'bg-slate-950 text-white border-slate-950'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
-              }`}
-            >
-              {ram === 'all' ? 'All' : ram}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 5. Battery Health */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">
-          5. Battery Health
-        </label>
-        <select
-          value={selectedBatteryHealth}
-          onChange={(e) => setSelectedBatteryHealth(e.target.value)}
-          className="w-full p-2.5 rounded-xl bg-white border border-slate-200 font-bold text-slate-800 cursor-pointer"
-        >
-          <option value="all">Any Certified Battery Health</option>
-          <option value="90+">90% & Above (Peak Health)</option>
-          <option value="85+">85% & Above (Guaranteed)</option>
-          <option value="80+">80% & Above (Standard)</option>
-        </select>
-      </div>
-
-      {/* 6. Device Condition */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">
-          6. Device Condition
-        </label>
-        <select
-          value={selectedCondition}
-          onChange={(e) => setSelectedCondition(e.target.value)}
-          className="w-full p-2.5 rounded-xl bg-white border border-slate-200 font-bold text-slate-800 cursor-pointer"
-        >
-          <option value="all">All Certified Grades</option>
-          <option value="Like New">Like New (Flawless)</option>
-          <option value="Excellent">Excellent (Pristine Screen)</option>
-          <option value="Very Good">Very Good</option>
-          <option value="Good">Good (Value Choice)</option>
-          <option value="Fair">Fair</option>
-        </select>
-      </div>
-
-      {/* 7. Screen Size */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">
-          7. Screen Size
-        </label>
-        <select
-          value={selectedScreenSize}
-          onChange={(e) => setSelectedScreenSize(e.target.value)}
-          className="w-full p-2.5 rounded-xl bg-white border border-slate-200 font-bold text-slate-800 cursor-pointer"
-        >
-          <option value="all">All Display Sizes</option>
-          <option value="compact">Compact (Under 6.3 inches)</option>
-          <option value="standard">Standard (6.3" – 6.65")</option>
-          <option value="large">Large Max / Ultra (Above 6.65")</option>
-        </select>
-      </div>
-
-      {/* 8. Processor */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">
-          8. Processor Family
-        </label>
-        <select
-          value={selectedProcessor}
-          onChange={(e) => setSelectedProcessor(e.target.value)}
-          className="w-full p-2.5 rounded-xl bg-white border border-slate-200 font-bold text-slate-800 cursor-pointer"
-        >
-          <option value="all">All Processors</option>
-          <option value="Apple">Apple A-Series Bionic / Pro</option>
-          <option value="Snapdragon">Qualcomm Snapdragon</option>
-          <option value="Dimensity">MediaTek Dimensity / Helio</option>
-          <option value="Exynos">Samsung Exynos</option>
-          <option value="Tensor">Google Tensor</option>
-        </select>
-      </div>
-
-      {/* 9. Operating System */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">
-          9. Operating System
-        </label>
-        <div className="grid grid-cols-3 gap-1.5">
-          {['all', 'iOS', 'Android'].map((os) => (
-            <button
-              key={os}
-              type="button"
-              onClick={() => setSelectedOs(os)}
-              className={`py-2 px-2 rounded-lg font-bold border transition-all cursor-pointer ${
-                selectedOs === os
-                  ? 'bg-slate-950 text-white border-slate-950'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
-              }`}
-            >
-              {os === 'all' ? 'All OS' : os}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 10. Availability */}
-      <div className="space-y-1.5">
-        <label className="block font-extrabold uppercase tracking-wider text-slate-600">
-          10. Availability
-        </label>
-        <div className="grid grid-cols-2 gap-1.5">
-          {[
-            { id: 'all', label: 'All Listings' },
-            { id: 'in-stock', label: 'In Stock Only' }
-          ].map((av) => (
-            <button
-              key={av.id}
-              type="button"
-              onClick={() => setSelectedAvailability(av.id)}
-              className={`py-2 px-2 rounded-lg font-bold border transition-all cursor-pointer ${
-                selectedAvailability === av.id
-                  ? 'bg-emerald-700 text-white border-emerald-700'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
-              }`}
-            >
-              {av.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  const conditionOptions = [
+    { id: 'all', label: 'All Certified Grades' },
+    { id: 'Like New', label: 'Like New (Flawless)' },
+    { id: 'Excellent', label: 'Excellent (Pristine)' },
+    { id: 'Very Good', label: 'Very Good' },
+    { id: 'Good', label: 'Good (Value Choice)' },
+    { id: 'Fair', label: 'Fair' }
+  ];
 
   return (
-    <section id="smartphones-catalog" className="py-12 bg-white">
+    <section id="smartphones-catalog" className="py-8 sm:py-12 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header with Tabs */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 rounded-full bg-[#FF6A00]" />
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 font-display">
-                Certified Pre-Owned Inventory
-              </span>
+        {/* Clean Catalog Header + Minimal Filter & Sort Toolbar */}
+        <div className="flex flex-col gap-4 pb-5 border-b border-slate-200">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2 h-2 rounded-full bg-[#FF6A00]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 font-display">
+                  Certified Pre-Owned Inventory
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 font-display tracking-tight">
+                {searchQuery ? `Search Results: "${searchQuery}"` : 'Explore Available Smartphones'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1">
+                Showing <span className="font-bold text-slate-900 tabular-nums">{sortedProducts.length}</span>{' '}
+                verified devices ready for express dispatch
+              </p>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 font-display tracking-tight">
-              {searchQuery ? `Search Results: "${searchQuery}"` : 'Explore All Certified Smartphones'}
-            </h2>
-            <p className="text-sm text-slate-600 mt-1">
-              Showing <span className="font-bold text-slate-900">{sortedProducts.length}</span> verified
-              devices ready for express dispatch across India
-            </p>
-          </div>
 
-          {/* Quick Collection Segmented Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === 'all' ? 'bg-white text-slate-950 shadow-xs' : 'text-slate-600 hover:text-slate-950'
-              }`}
-            >
-              All Smartphones
-            </button>
-            <button
-              onClick={() => setActiveTab('deals')}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'deals' ? 'bg-white text-slate-950 shadow-xs' : 'text-slate-600 hover:text-slate-950'
-              }`}
-            >
-              <Flame className="w-3.5 h-3.5 text-[#FF6A00]" />
-              Best Deals
-            </button>
-            <button
-              onClick={() => setActiveTab('latest')}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'latest' ? 'bg-white text-slate-950 shadow-xs' : 'text-slate-600 hover:text-slate-950'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              Latest Arrivals
-            </button>
-          </div>
-        </div>
-
-        {/* Integrated Catalog Search Bar + Sort Dropdown + Mobile Filter Button */}
-        <div className="my-6 p-4 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-          {/* Catalog Search Input */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange?.(e.target.value)}
-              placeholder="Search catalog by model, brand, RAM (e.g. 8GB), storage (256GB), processor, or budget (under 20000)..."
-              className="w-full pl-10 pr-20 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#FF6A00]"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={onClearSearch}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            {/* Mobile Filter Drawer Trigger */}
-            <button
-              type="button"
-              onClick={() => setIsMobileFilterOpen(true)}
-              className="lg:hidden flex-1 sm:flex-initial px-4 py-2.5 bg-slate-950 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <SlidersHorizontal className="w-4 h-4 text-[#FF6A00]" />
-              <span>Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}</span>
-            </button>
-
-            {/* Compare Trigger if items selected */}
-            {compareList.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setIsCompareModalOpen(true)}
-                className="px-3.5 py-2.5 bg-[#FF6A00] hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <Scale className="w-4 h-4" />
-                <span>Compare ({compareList.length}/3)</span>
-              </button>
-            )}
-
-            {/* 5-Option Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="py-2.5 px-3.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:border-[#FF6A00] cursor-pointer"
-              aria-label="Sort smartphones"
-            >
-              <option value="popularity">Sort: Popularity</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="newest">Newest First</option>
-              <option value="discount-desc">Best Discount</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Main 2-Column Layout: 10-Point Filter Sidebar (Left) + Product Grid (Right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Desktop 10-Point Filter Sidebar */}
-          <aside className="hidden lg:block lg:col-span-3 p-5 rounded-3xl border border-slate-200 bg-slate-50/70 sticky top-24">
-            {renderTenPointFilters()}
-          </aside>
-
-          {/* Product Listing Column */}
-          <div className="lg:col-span-9">
-            {sortedProducts.length > 0 ? (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
-                  {paginatedProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-
-                {/* Pagination Controls Bar */}
-                <div className="mt-10 pt-6 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="text-xs sm:text-sm text-slate-600 font-medium text-center md:text-left">
-                    Showing{' '}
-                    <strong className="text-slate-900 font-extrabold">
-                      {viewMode === 'all'
-                        ? sortedProducts.length
-                        : `${(currentPage - 1) * itemsPerPage + 1} – ${Math.min(
-                            currentPage * itemsPerPage,
-                            sortedProducts.length
-                          )}`}
-                    </strong>{' '}
-                    of <strong className="text-slate-900 font-extrabold">{sortedProducts.length}</strong>{' '}
-                    smartphones
-                  </div>
-
-                  {viewMode === 'paginated' && totalPages > 1 && (
-                    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center">
-                      <button
-                        type="button"
-                        disabled={currentPage === 1}
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        className="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 font-bold text-xs flex items-center gap-1 cursor-pointer"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span className="hidden sm:inline">Prev</span>
-                      </button>
-
-                      {getPageNumbers(currentPage, totalPages).map((p, idx) => {
-                        if (p === '...') {
-                          return (
-                            <span key={`dots-${idx}`} className="px-2 text-slate-400 font-bold text-xs">
-                              ...
-                            </span>
-                          );
-                        }
-                        const pageNum = Number(p);
-                        const isActive = pageNum === currentPage;
-                        return (
-                          <button
-                            key={pageNum}
-                            type="button"
-                            onClick={() => handlePageChange(pageNum)}
-                            className={`w-9 h-9 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
-                              isActive
-                                ? 'bg-[#FF6A00] text-white shadow-md font-extrabold'
-                                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-
-                      <button
-                        type="button"
-                        disabled={currentPage === totalPages}
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        className="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 font-bold text-xs flex items-center gap-1 cursor-pointer"
-                      >
-                        <span className="hidden sm:inline">Next</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextMode = viewMode === 'paginated' ? 'all' : 'paginated';
-                      setViewMode(nextMode);
-                      if (nextMode === 'all') setCurrentPage(1);
-                    }}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                    <span>
-                      {viewMode === 'paginated'
-                        ? `View All (${sortedProducts.length})`
-                        : 'Show Paginated (24 / page)'}
-                    </span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-16 px-4 bg-slate-50 rounded-3xl border border-dashed border-slate-300">
-                <div className="w-16 h-16 rounded-2xl bg-orange-100 text-[#FF6A00] flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">No Smartphones Match Your Filter</h3>
-                <p className="text-sm text-slate-600 max-w-md mx-auto mb-6">
-                  Try clearing one or more filters or searching for another smartphone model or brand.
-                </p>
+            {/* Compact Toolbar: Collection Tabs + Filter Button + Sort Dropdown */}
+            <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5">
+              {/* Quick Collection Segmented Tabs */}
+              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto max-w-full">
                 <button
-                  onClick={handleResetFilters}
-                  className="px-5 py-2.5 bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer inline-flex items-center gap-2"
+                  type="button"
+                  onClick={() => setActiveTab('all')}
+                  className={`px-3 sm:px-3.5 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'all'
+                      ? 'bg-white text-slate-950 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-950'
+                  }`}
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Clear All Filters
+                  All Smartphones
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('deals')}
+                  className={`px-3 sm:px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    activeTab === 'deals'
+                      ? 'bg-white text-slate-950 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-950'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5 text-[#FF6A00]" />
+                  <span>Best Deals</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('latest')}
+                  className={`px-3 sm:px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    activeTab === 'latest'
+                      ? 'bg-white text-slate-950 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-950'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Latest Arrivals</span>
                 </button>
               </div>
-            )}
+
+              {/* Action Controls: Compact Filter Button + Compare + Sort Dropdown */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {/* Compact Filter Trigger (Mobile Bottom Sheet / Desktop Slide Drawer) */}
+                <button
+                  type="button"
+                  onClick={() => setIsFilterDrawerOpen(true)}
+                  className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer border ${
+                    activeFilterCount > 0
+                      ? 'bg-slate-950 text-white border-slate-950 shadow-sm hover:bg-slate-900'
+                      : 'bg-slate-950 text-white border-slate-950 hover:bg-slate-800 shadow-xs'
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4 text-[#FF6A00]" />
+                  <span>Filter</span>
+                  {activeFilterCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-[#FF6A00] text-white text-[10px] font-black leading-none tabular-nums">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Compare Trigger if items selected */}
+                {compareList.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCompareModalOpen(true)}
+                    className="px-3.5 py-2.5 bg-[#FF6A00] hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <Scale className="w-4 h-4" />
+                    <span>Compare ({compareList.length}/3)</span>
+                  </button>
+                )}
+
+                {/* Compact Sort Selector */}
+                <div className="relative flex-1 sm:flex-initial">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full py-2.5 pl-8 pr-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#FF6A00] cursor-pointer transition-colors"
+                    aria-label="Sort smartphones"
+                  >
+                    <option value="popularity">Sort: Recommended</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="newest">Newest First</option>
+                    <option value="discount-desc">Best Discount</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Selected Filters as Compact Removable Chips */}
+          {activeFilterChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">
+                Active Filters:
+              </span>
+              {activeFilterChips.map((chip) => (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={chip.onRemove}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-[#FF6A00] transition-colors cursor-pointer group"
+                >
+                  <span>{chip.label}</span>
+                  <X className="w-3 h-3 text-slate-400 group-hover:text-white" />
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold text-[#FF6A00] hover:bg-orange-50 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Clear All</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Full-Width Smartphone Product Grid */}
+        <div className="pt-6">
+          {sortedProducts.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-5">
+                {paginatedProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+
+              {/* Pagination Controls Bar */}
+              <div className="mt-10 pt-6 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="text-xs sm:text-sm text-slate-600 font-medium text-center md:text-left">
+                  Showing{' '}
+                  <strong className="text-slate-900 font-extrabold tabular-nums">
+                    {viewMode === 'all'
+                      ? sortedProducts.length
+                      : `${(currentPage - 1) * itemsPerPage + 1} – ${Math.min(
+                          currentPage * itemsPerPage,
+                          sortedProducts.length
+                        )}`}
+                  </strong>{' '}
+                  of{' '}
+                  <strong className="text-slate-900 font-extrabold tabular-nums">
+                    {sortedProducts.length}
+                  </strong>{' '}
+                  smartphones
+                </div>
+
+                {viewMode === 'paginated' && totalPages > 1 && (
+                  <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center">
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline">Prev</span>
+                    </button>
+
+                    {getPageNumbers(currentPage, totalPages).map((p, idx) => {
+                      if (p === '...') {
+                        return (
+                          <span key={`dots-${idx}`} className="px-2 text-slate-400 font-bold text-xs">
+                            ...
+                          </span>
+                        );
+                      }
+                      const pageNum = Number(p);
+                      const isActive = pageNum === currentPage;
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`w-9 h-9 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center tabular-nums ${
+                            isActive
+                              ? 'bg-[#FF6A00] text-white shadow-md font-extrabold'
+                              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextMode = viewMode === 'paginated' ? 'all' : 'paginated';
+                    setViewMode(nextMode);
+                    if (nextMode === 'all') setCurrentPage(1);
+                  }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>
+                    {viewMode === 'paginated'
+                      ? `View All (${sortedProducts.length})`
+                      : 'Show Paginated (24 / page)'}
+                  </span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-16 px-4 bg-slate-50 rounded-3xl border border-dashed border-slate-300">
+              <div className="w-16 h-16 rounded-2xl bg-orange-100 text-[#FF6A00] flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">No Smartphones Match Your Filter</h3>
+              <p className="text-sm text-slate-600 max-w-md mx-auto mb-6">
+                Try clearing one or more filters or searching for another smartphone model or brand.
+              </p>
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="px-5 py-2.5 bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer inline-flex items-center gap-2"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Clear All Filters</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Mobile Filter Drawer */}
-      {isMobileFilterOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex justify-end lg:hidden">
-          <div className="bg-white w-full max-w-sm h-full p-5 overflow-y-auto flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <span className="text-base font-extrabold text-slate-950">Filter Smartphones</span>
+      {/* Responsive Filter Bottom Sheet (Mobile) & Slide-Over Drawer (Desktop) */}
+      {isFilterDrawerOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-end sm:items-stretch sm:justify-end animate-in fade-in duration-200"
+          onClick={() => setIsFilterDrawerOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full sm:max-w-md max-h-[88vh] sm:max-h-full sm:h-full rounded-t-3xl sm:rounded-none sm:rounded-l-3xl shadow-2xl border-t sm:border-t-0 sm:border-l border-slate-200 flex flex-col justify-between overflow-hidden"
+          >
+            {/* Sticky Drawer Header */}
+            <div className="px-5 pt-3 pb-4 sm:py-4 bg-slate-950 text-white border-b border-slate-800 shrink-0">
+              {/* Mobile Drag Handle Pill */}
+              <div className="w-10 h-1 rounded-full bg-slate-700 mx-auto mb-3 sm:hidden" />
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#FF6A00]/15 border border-[#FF6A00]/40 flex items-center justify-center">
+                    <SlidersHorizontal className="w-4 h-4 text-[#FF6A00]" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-extrabold text-white font-display">
+                        Filter &amp; Sort Smartphones
+                      </h3>
+                      {activeFilterCount > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-[#FF6A00] text-white text-[10px] font-black tabular-nums">
+                          {activeFilterCount} Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      {sortedProducts.length} verified smartphones match your selection
+                    </p>
+                  </div>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setIsMobileFilterOpen(false)}
-                  className="p-2 rounded-xl bg-slate-100 text-slate-700"
+                  onClick={() => setIsFilterDrawerOpen(false)}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  aria-label="Close filters"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              {renderTenPointFilters()}
             </div>
 
-            <div className="pt-4 border-t border-slate-200 flex items-center gap-2">
+            {/* Scrollable Organized Filter Groups */}
+            <div className="p-5 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
+              {/* Group 0: Sort By */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 space-y-2.5">
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                  Sort By
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'popularity', label: 'Recommended' },
+                    { id: 'price-asc', label: 'Price: Low to High' },
+                    { id: 'price-desc', label: 'Price: High to Low' },
+                    { id: 'newest', label: 'Newest First' },
+                    { id: 'discount-desc', label: 'Highest Discount' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setSortBy(opt.id)}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border text-left flex items-center justify-between transition-all cursor-pointer ${
+                        sortBy === opt.id
+                          ? 'bg-slate-950 text-white border-slate-950'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-400'
+                      }`}
+                    >
+                      <span className="truncate">{opt.label}</span>
+                      {sortBy === opt.id && <Check className="w-3.5 h-3.5 text-[#FF6A00] shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Group 1: Brand & Operating System */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                    1. Smartphone Brand
+                  </label>
+                  <select
+                    value={selectedBrand}
+                    onChange={(e) => onSelectBrand(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-xs text-slate-900 focus:outline-none focus:border-[#FF6A00] cursor-pointer"
+                  >
+                    {brandOptions.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                    2. Operating System
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['all', 'iOS', 'Android'].map((os) => (
+                      <button
+                        key={os}
+                        type="button"
+                        onClick={() => setSelectedOs(os)}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          selectedOs === os
+                            ? 'bg-slate-950 text-white border-slate-950'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-400'
+                        }`}
+                      >
+                        {os === 'all' ? 'All OS' : os}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Group 2: Price Range */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 space-y-2.5">
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                  3. Price Range
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {priceOptions.map((price) => (
+                    <button
+                      key={price.id}
+                      type="button"
+                      onClick={() => setSelectedPriceBracket(price.id)}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left flex items-center justify-between ${
+                        selectedPriceBracket === price.id
+                          ? 'bg-[#FF6A00] text-white border-[#FF6A00]'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-400'
+                      }`}
+                    >
+                      <span className="truncate">{price.label}</span>
+                      {selectedPriceBracket === price.id && <Check className="w-3.5 h-3.5 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Group 3: Condition & Battery Health */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                    4. Device Condition
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {conditionOptions.map((cond) => (
+                      <button
+                        key={cond.id}
+                        type="button"
+                        onClick={() => setSelectedCondition(cond.id)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left truncate ${
+                          selectedCondition === cond.id
+                            ? 'bg-slate-950 text-white border-slate-950'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-400'
+                        }`}
+                      >
+                        {cond.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                    5. Certified Battery Health
+                  </label>
+                  <select
+                    value={selectedBatteryHealth}
+                    onChange={(e) => setSelectedBatteryHealth(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-xs text-slate-900 focus:outline-none focus:border-[#FF6A00] cursor-pointer"
+                  >
+                    <option value="all">Any Certified Battery Health</option>
+                    <option value="90+">90% &amp; Above (Peak Health)</option>
+                    <option value="85+">85% &amp; Above (Guaranteed)</option>
+                    <option value="80+">80% &amp; Above (Standard)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Group 4: Storage & RAM */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                    6. Internal Storage
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['all', '64GB', '128GB', '256GB', '512GB'].map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => setSelectedStorage(st)}
+                        className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          selectedStorage === st
+                            ? 'bg-slate-950 text-white border-slate-950'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-400'
+                        }`}
+                      >
+                        {st === 'all' ? 'Any Storage' : st}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                    7. RAM Capacity
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['all', '4GB', '6GB', '8GB', '12GB'].map((ram) => (
+                      <button
+                        key={ram}
+                        type="button"
+                        onClick={() => setSelectedRam(ram)}
+                        className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          selectedRam === ram
+                            ? 'bg-slate-950 text-white border-slate-950'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-400'
+                        }`}
+                      >
+                        {ram === 'all' ? 'Any RAM' : ram}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Group 5: Display, Processor & Availability */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                    8. Screen Size
+                  </label>
+                  <select
+                    value={selectedScreenSize}
+                    onChange={(e) => setSelectedScreenSize(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-xs text-slate-900 focus:outline-none focus:border-[#FF6A00] cursor-pointer"
+                  >
+                    <option value="all">All Display Sizes</option>
+                    <option value="compact">Compact (Under 6.3 inches)</option>
+                    <option value="standard">Standard (6.3&quot; – 6.65&quot;)</option>
+                    <option value="large">Large Max / Ultra (Above 6.65&quot;)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                    9. Processor Family
+                  </label>
+                  <select
+                    value={selectedProcessor}
+                    onChange={(e) => setSelectedProcessor(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-xs text-slate-900 focus:outline-none focus:border-[#FF6A00] cursor-pointer"
+                  >
+                    <option value="all">All Processors</option>
+                    <option value="Apple">Apple A-Series Bionic / Pro</option>
+                    <option value="Snapdragon">Qualcomm Snapdragon</option>
+                    <option value="Dimensity">MediaTek Dimensity / Helio</option>
+                    <option value="Exynos">Samsung Exynos</option>
+                    <option value="Tensor">Google Tensor</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                    10. Stock Availability
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'all', label: 'All Listings' },
+                      { id: 'in-stock', label: 'In Stock Only' }
+                    ].map((av) => (
+                      <button
+                        key={av.id}
+                        type="button"
+                        onClick={() => setSelectedAvailability(av.id)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          selectedAvailability === av.id
+                            ? 'bg-emerald-700 text-white border-emerald-700'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-400'
+                        }`}
+                      >
+                        {av.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sticky Drawer Footer: Clear All + Apply Filters */}
+            <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-3 shrink-0">
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="flex-1 py-3 rounded-xl border border-slate-300 text-xs font-extrabold text-slate-700"
+                className="px-4 py-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-extrabold text-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                Reset
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Clear All</span>
               </button>
               <button
                 type="button"
-                onClick={() => setIsMobileFilterOpen(false)}
-                className="flex-1 py-3 rounded-xl bg-[#FF6A00] text-white text-xs font-extrabold"
+                onClick={() => setIsFilterDrawerOpen(false)}
+                className="flex-1 py-3 px-5 rounded-xl bg-[#FF6A00] hover:bg-[#e55f00] text-white text-xs sm:text-sm font-extrabold shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                Show {sortedProducts.length} Phones
+                <span>Apply Filters · Show {sortedProducts.length} Phones</span>
               </button>
             </div>
           </div>

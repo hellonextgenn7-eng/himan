@@ -182,7 +182,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
   whatsappNumber: '',
   heroHeading: 'Your Dream Smartphone. At A Smarter Price.',
   heroSubtitle: 'Explore premium pre-owned smartphones at unbeatable prices.',
-  codEnabled: true,
+  codEnabled: false,
   freeShippingAbove: 5000,
   defaultDeliveryCharge: 0,
   razorpayKeyId: 'rzp_test_phonebajar_demo',

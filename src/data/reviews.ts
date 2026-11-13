@@ -32,7 +32,7 @@ export const REVIEWS: Review[] = [
     verifiedBuyer: true,
     phoneModel: 'OnePlus 11 5G (Eternal Green)',
     headline: '100W SuperVOOC charger in box, 16GB RAM beast!',
-    comment: 'Ordered via Cash on Delivery with initial inspection. The phone came sealed in Phone Bazar certified packaging with the 32-point inspection check-off card. Battery backup lasts 1.5 days easily.'
+    comment: 'Ordered via Instant UPI with priority express dispatch. The phone came sealed in Phone Bazar certified packaging with the 32-point inspection check-off card. Battery backup lasts 1.5 days easily.'
   },
   {
     id: 'rev-4',

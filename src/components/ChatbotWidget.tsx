@@ -21,12 +21,12 @@ const STARTER_PROMPTS = [
   '🔥 Best phones under ₹20,000',
   '🛡️ How does 7-Day Replacement work?',
   '📸 Best camera phone under ₹30,000',
-  '📦 Delivery time & COD payment rules',
+  '📦 Delivery time & UPI / NetBanking rules',
   '⚖️ iPhone 13 vs Galaxy S21'
 ];
 
 export const ChatbotWidget: React.FC = () => {
-  const { setIsOrderTrackingOpen, settings } = useStore();
+  const { setIsOrderTrackingOpen, settings, selectedProduct } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -106,8 +106,8 @@ export const ChatbotWidget: React.FC = () => {
       return "⚖️ iPhone vs Samsung Galaxy Comparison:\n\n• Choose Apple iPhone for industry-leading video recording, long-term iOS updates, and Face ID security.\n• Choose Samsung Galaxy for 120Hz Dynamic AMOLED 2X displays, versatile telephoto zoom, and fast multitasking.\n\nYou can also click the Compare icon on any 3 phones in our catalog to compare all 16 specifications side by side!";
     }
 
-    if (m.includes('delivery') || m.includes('shipping') || m.includes('cod') || m.includes('cash on delivery')) {
-      return "📦 Delivery & Payment Policy:\n\n• Free Insured Express Delivery across all Indian PIN codes (24–48 hours in metro cities, 2–4 business days nationwide).\n• Enter your 6-digit PIN code on any product page to check exact delivery timelines.\n• Both Online Prepaid (UPI, Cards, NetBanking) and Cash on Delivery (COD) are supported!";
+    if (m.includes('delivery') || m.includes('shipping') || m.includes('payment') || m.includes('upi') || m.includes('netbanking') || m.includes('bank')) {
+      return "📦 Delivery & Online Payment Policy:\n\n• Free Insured Express Delivery across all Indian PIN codes (24–48 hours in metro cities, 2–4 business days nationwide).\n• Enter your 6-digit PIN code on any product page to check exact delivery timelines.\n• Secure 100% Online Prepaid Checkout via Instant UPI (Google Pay, PhonePe, Paytm, BHIM, UPI ID), NetBanking (SBI, HDFC, ICICI, Axis & all major banks), and Credit/Debit Cards!";
     }
 
     if (m.includes('track') || m.includes('order')) {
@@ -194,7 +194,11 @@ export const ChatbotWidget: React.FC = () => {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-40 flex items-center">
+      <div
+        className={`fixed right-4 sm:right-6 z-40 flex items-center transition-all duration-200 ${
+          selectedProduct ? 'bottom-36 md:bottom-6' : 'bottom-20 md:bottom-6'
+        }`}
+      >
         {!isOpen && (
           <button
             onClick={() => setIsOpen(true)}
@@ -216,7 +220,7 @@ export const ChatbotWidget: React.FC = () => {
       </div>
 
       {isOpen && (
-        <div className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] max-w-sm sm:max-w-md h-[540px] sm:h-[580px] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-20 right-3 sm:bottom-20 md:bottom-6 sm:right-6 z-50 w-[calc(100vw-1.5rem)] max-w-sm sm:max-w-md h-[min(520px,calc(100vh-7rem))] sm:h-[580px] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
           <div className="bg-slate-950 text-white px-4 py-3.5 flex items-center justify-between shrink-0 border-b border-slate-800">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF6A00] to-orange-600 flex items-center justify-center text-white shadow-sm">

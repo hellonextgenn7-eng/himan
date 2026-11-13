@@ -28,7 +28,7 @@ YOUR ROLE:
   * 6 Months Phone Bazar Store Warranty on all smartphones.
   * 32-Point Rigorous Hardware Quality Inspection on every device.
   * Free Express Insured Delivery across India.
-  * Cash on Delivery (COD) and Online Prepaid Payment (UPI, Cards, Netbanking).
+  * 100% Secure Online Prepaid Payment via Instant UPI (GPay, PhonePe, Paytm, BHIM), NetBanking (All Indian Banks), and Credit/Debit Cards.
 - Catalog Knowledge:
   * Over 670 verified smartphone models across Apple iPhone, Samsung Galaxy (including Galaxy S20+ at ₹14,999, 62% OFF), OnePlus, Google Pixel, Xiaomi, Redmi, Realme, Vivo, OPPO, Motorola, POCO, and iQOO.
   * Every product page allows selecting RAM & Storage variants (e.g. 8GB/128GB, 8GB/256GB, 12GB/256GB) with live price and stock updates.
@@ -64,8 +64,8 @@ function getStoreAssistantReply(message: string): string {
     return "⚖️ iPhone vs Samsung Galaxy Comparison:\n\n• Choose Apple iPhone for industry-leading video recording, long-term iOS updates, and Face ID security.\n• Choose Samsung Galaxy for 120Hz Dynamic AMOLED 2X displays, versatile telephoto zoom, and fast multitasking.\n\nYou can also click the Compare icon on any 3 phones in our catalog to compare all 16 specifications side by side!";
   }
 
-  if (m.includes('delivery') || m.includes('shipping') || m.includes('cod') || m.includes('cash on delivery')) {
-    return "📦 Delivery & Payment Policy:\n\n• Free Insured Express Delivery across all Indian PIN codes (24–48 hours in metro cities, 2–4 business days nationwide).\n• Enter your 6-digit PIN code on any product page to check exact delivery timelines.\n• Both Online Prepaid (UPI, Cards, NetBanking) and Cash on Delivery (COD) are supported!";
+  if (m.includes('delivery') || m.includes('shipping') || m.includes('payment') || m.includes('upi') || m.includes('netbanking') || m.includes('bank')) {
+    return "📦 Delivery & Online Payment Policy:\n\n• Free Insured Express Delivery across all Indian PIN codes (24–48 hours in metro cities, 2–4 business days nationwide).\n• Enter your 6-digit PIN code on any product page to check exact delivery timelines.\n• Secure 100% Online Prepaid Checkout via Instant UPI (Google Pay, PhonePe, Paytm, BHIM, UPI ID), NetBanking (SBI, HDFC, ICICI, Axis & all major banks), and Credit/Debit Cards!";
   }
 
   if (m.includes('track') || m.includes('order')) {

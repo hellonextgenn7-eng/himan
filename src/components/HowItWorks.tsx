@@ -18,8 +18,8 @@ export const HowItWorks: React.FC = () => {
     {
       step: '03',
       icon: <CreditCard className="w-5 h-5 text-sky-500" />,
-      title: 'Flexible Payment / COD',
-      desc: 'Checkout smoothly with Razorpay, instant UPI (Google Pay / PhonePe), or select Cash on Delivery with ₹0 advance payment.'
+      title: 'Instant UPI & NetBanking',
+      desc: 'Checkout smoothly with instant UPI (Google Pay, PhonePe, Paytm, BHIM), NetBanking across all Indian banks, or Credit/Debit Cards.'
     },
     {
       step: '04',

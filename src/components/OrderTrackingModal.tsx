@@ -30,7 +30,7 @@ export const OrderTrackingModal: React.FC = () => {
   // All 7 requested progression steps
   const statusSteps: { label: OrderStatus; desc: string }[] = [
     { label: 'Order Placed', desc: 'Order received and registered in Phone Bazar fulfillment system.' },
-    { label: 'Payment Confirmed', desc: 'Payment / COD verification completed and stock reserved.' },
+    { label: 'Payment Confirmed', desc: 'Online UPI / NetBanking / Card payment verified and stock reserved.' },
     { label: 'Processing', desc: 'Device pulled from climate-controlled inventory for final prep.' },
     {
       label: 'Quality Check',

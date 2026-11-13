@@ -85,7 +85,7 @@ export interface CartItem {
   variantOriginalPrice?: number;
 }
 
-export type PaymentMethod = 'Razorpay' | 'Cashify' | 'UPI' | 'Card' | 'COD';
+export type PaymentMethod = 'UPI' | 'NetBanking' | 'Card' | 'Razorpay' | 'Cashify';
 export type PaymentStatus = 'Paid' | 'Pending' | 'Failed';
 export type OrderStatus =
   | 'Order Placed'

@@ -17,11 +17,12 @@ import { CheckoutModal } from './components/CheckoutModal';
 import { OrderTrackingModal } from './components/OrderTrackingModal';
 import { PolicyModal } from './components/PolicyModal';
 import { CustomerAccountModal } from './components/CustomerAccountModal';
-import { ExchangeModal } from './components/ExchangeModal';
 import { CompareModal } from './components/CompareModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Toast } from './components/Toast';
 import { ProductDetailPage } from './components/ProductDetailPage';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { CustomerProtectionBanner } from './components/CustomerProtectionBanner';
 
 const StorefrontContent: React.FC = () => {
   const { isAdminViewOpen, selectedProduct, closeProductPage } = useStore();
@@ -64,13 +65,13 @@ const StorefrontContent: React.FC = () => {
           }}
         />
 
-        {/* Floating Chatbot & Action Drawers */}
+        {/* Floating Chatbot, Mobile Bottom Nav & Action Drawers */}
         <ChatbotWidget />
+        <MobileBottomNav />
         <CartDrawer />
         <CheckoutModal />
         <OrderTrackingModal />
         <CustomerAccountModal />
-        <ExchangeModal />
         <CompareModal />
         <PolicyModal />
         <Toast />
@@ -129,7 +130,10 @@ const StorefrontContent: React.FC = () => {
         {/* 4. Promotional Upgrade Banner */}
         <PromoBanner onActionClick={scrollToCatalog} />
 
-        {/* 5. Comprehensive 672 Smartphones Catalog with 10-Point Filter Sidebar & Pagination */}
+        {/* 5. 6-Month Customer Protection Guarantee Banner */}
+        <CustomerProtectionBanner />
+
+        {/* 6. Comprehensive Smartphones Catalog with Compact Filter Drawer & Pagination */}
         <ProductGrid
           selectedBrand={selectedBrand}
           onSelectBrand={setSelectedBrand}
@@ -160,15 +164,15 @@ const StorefrontContent: React.FC = () => {
         }}
       />
 
-      {/* Floating Gemini AI Smartphone Advisor & Support Chatbot */}
+      {/* Floating Gemini AI Smartphone Advisor, Mobile Bottom Nav & Support Chatbot */}
       <ChatbotWidget />
+      <MobileBottomNav />
 
       {/* Functional Drawers & Modals (Cart, Checkout, Order Tracking, Account, Exchange, Compare) */}
       <CartDrawer />
       <CheckoutModal />
       <OrderTrackingModal />
       <CustomerAccountModal />
-      <ExchangeModal />
       <CompareModal />
       <PolicyModal />
       <Toast />

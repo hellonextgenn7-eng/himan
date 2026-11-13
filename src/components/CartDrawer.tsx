@@ -187,45 +187,6 @@ export const CartDrawer: React.FC = () => {
                   </div>
                 );
               })}
-
-              {/* Trade-In Exchange Promo inside Cart */}
-              <div className="p-3.5 rounded-2xl border border-orange-200 bg-orange-50/50 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <ArrowRightLeft className="w-4 h-4 text-[#FF6A00] shrink-0" />
-                  <div className="text-xs">
-                    <p className="font-extrabold text-slate-900">
-                      {activeExchange
-                        ? `Exchange Applied: ${activeExchange.brand} ${activeExchange.model}`
-                        : 'Have an old smartphone to exchange?'}
-                    </p>
-                    <p className="text-[11px] text-slate-600">
-                      {activeExchange
-                        ? `Saving ₹${exchangeDiscount.toLocaleString('en-IN')} on this order`
-                        : 'Calculate instant trade-in value and deduct from total'}
-                    </p>
-                  </div>
-                </div>
-                {activeExchange ? (
-                  <button
-                    type="button"
-                    onClick={() => setActiveExchange(null)}
-                    className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer shrink-0"
-                  >
-                    Remove
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCartOpen(false);
-                      setIsExchangeModalOpen(true);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-slate-950 text-white text-[11px] font-extrabold cursor-pointer shrink-0"
-                  >
-                    Calculate
-                  </button>
-                )}
-              </div>
             </>
           ) : (
             <div className="text-center py-16 space-y-3">

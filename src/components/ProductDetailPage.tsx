@@ -32,7 +32,6 @@ import {
   Camera,
   Smartphone
 } from 'lucide-react';
-import { getCashifyPriceEstimate } from '../services/cashifyService';
 import { handleImageError } from '../utils/imageFallback';
 
 // Helper to map Indian 6-digit PIN code prefix to Postal Circle & Delivery Timeline
@@ -40,7 +39,6 @@ function evaluateIndianPinCode(pin: string): {
   valid: boolean;
   region?: string;
   timeline?: string;
-  codAvailable?: boolean;
   message: string;
 } {
   const clean = pin.trim();
@@ -108,8 +106,7 @@ function evaluateIndianPinCode(pin: string): {
     valid: true,
     region,
     timeline: days,
-    codAvailable: true,
-    message: `✓ Express Delivery Available to ${clean} (${region})! Estimated arrival in ${days} with Free Insured Shipping & Cash on Delivery.`
+    message: `✓ Express Delivery Available to ${clean} (${region})! Estimated arrival in ${days} with Free Insured Shipping & Instant UPI / NetBanking / Card Checkout.`
   };
 }
 
@@ -144,17 +141,6 @@ export const ProductDetailPage: React.FC = () => {
   // Full-Screen Lightbox State
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxZoom, setLightboxZoom] = useState(1);
-
-  // 6-Step Exchange Your Old Phone Calculator State
-  const [isExchangeOpen, setIsExchangeOpen] = useState(false);
-  const [exchangeBrand, setExchangeBrand] = useState('Apple');
-  const [exchangeModel, setExchangeModel] = useState('');
-  const [exchangeStorage, setExchangeStorage] = useState('128GB');
-  const [exchangeScreenCond, setExchangeScreenCond] = useState<'flawless' | 'minor_scratches' | 'cracked'>('flawless');
-  const [exchangeBodyCond, setExchangeBodyCond] = useState<'like-new' | 'good' | 'fair'>('good');
-  const [exchangeBatteryCond, setExchangeBatteryCond] = useState<'healthy' | 'service'>('healthy');
-  const [exchangeLoading, setExchangeLoading] = useState(false);
-  const [calculatedExchangeValue, setCalculatedExchangeValue] = useState<number | null>(null);
 
   // Similar smartphones filter tab
   const [similarTab, setSimilarTab] = useState<'brand' | 'price'>('brand');
@@ -296,10 +282,6 @@ export const ProductDetailPage: React.FC = () => {
   const currentCondition: DeviceCondition = activeVariant.condition || selectedProduct.condition;
   const currentBatteryHealth = activeVariant.batteryHealth ?? selectedProduct.batteryHealth;
 
-  const netPriceAfterExchange = activeExchange
-    ? Math.max(999, currentSellingPrice - activeExchange.estimatedValue)
-    : currentSellingPrice;
-
   const isFavorited = isInWishlist(selectedProduct.id);
   const inCompare = isInCompare(selectedProduct.id);
   const images =
@@ -381,51 +363,6 @@ export const ProductDetailPage: React.FC = () => {
   const handleCheckPincode = (e: React.FormEvent) => {
     e.preventDefault();
     setPincodeResult(evaluateIndianPinCode(pincode));
-  };
-
-  const handleCalculateExchange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!exchangeModel.trim()) {
-      showToast('Please enter your existing phone model name.', 'error');
-      return;
-    }
-    setExchangeLoading(true);
-    try {
-      const res = await getCashifyPriceEstimate({
-        brand: exchangeBrand,
-        model: exchangeModel,
-        storage: exchangeStorage,
-        physicalCondition: exchangeBodyCond
-      });
-      let baseVal = res.estimatedValue || 6500;
-      if (exchangeStorage === '256GB') baseVal += 1200;
-      if (exchangeStorage === '512GB') baseVal += 2500;
-      if (exchangeScreenCond === 'minor_scratches') baseVal = Math.round(baseVal * 0.88);
-      if (exchangeScreenCond === 'cracked') baseVal = Math.round(baseVal * 0.62);
-      if (exchangeBatteryCond === 'service') baseVal = Math.round(baseVal * 0.85);
-      // Cap exchange value at 75% of the target smartphone's price
-      const capped = Math.min(Math.max(1500, baseVal), Math.round(currentSellingPrice * 0.75));
-      setCalculatedExchangeValue(capped);
-    } catch {
-      setCalculatedExchangeValue(5500);
-    } finally {
-      setExchangeLoading(false);
-    }
-  };
-
-  const handleApplyExchangeDiscount = () => {
-    if (!calculatedExchangeValue) return;
-    setActiveExchange({
-      brand: exchangeBrand,
-      model: exchangeModel.trim(),
-      storage: exchangeStorage,
-      condition: exchangeBodyCond,
-      screenCondition: exchangeScreenCond,
-      batteryStatus: exchangeBatteryCond,
-      estimatedValue: calculatedExchangeValue,
-      provider: 'Phone Bazar Certified Trade-In'
-    });
-    showToast(`₹${calculatedExchangeValue.toLocaleString('en-IN')} exchange discount applied!`);
   };
 
   // Similar products grouped by brand and by price
@@ -513,7 +450,7 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen bg-white text-slate-900 selection:bg-[#FF6A00] selection:text-white flex flex-col">
-      {/* STICKY HEADER AT TOP: Back arrow + Breadcrumb + Quick Actions */}
+      {/* STICKY HEADER AT TOP: Back arrow + Official Logo + Breadcrumb + Quick Actions */}
       <header className="sticky top-0 z-40 bg-slate-950 text-white border-b border-slate-800 px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
@@ -525,6 +462,24 @@ export const ProductDetailPage: React.FC = () => {
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden md:inline text-xs font-bold">Back</span>
           </button>
+
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex items-center gap-2 shrink-0 cursor-pointer group"
+            title="Phone Bazar Home"
+          >
+            <img
+              src="/assets/aistudio/WhatsApp_Image_2026-11-13_at_5.05.27_PM_f2187aef.jpeg"
+              alt="Phone Bazar Logo"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-cover border border-slate-700 shrink-0"
+            />
+            <span className="hidden sm:inline text-sm font-extrabold tracking-tight text-white font-display">
+              PHONE <span className="text-[#FF6A00]">BAZAR</span>
+            </span>
+          </button>
+
+          <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0 hidden sm:inline" />
 
           {/* Breadcrumb: Home > Smartphones > BRAND > MODEL */}
           <nav
@@ -589,7 +544,7 @@ export const ProductDetailPage: React.FC = () => {
 
           <button
             onClick={() => setIsCartOpen(true)}
-            className="p-2 rounded-xl text-slate-300 hover:text-[#FF6A00] hover:bg-slate-900 transition-colors cursor-pointer relative"
+            className="hidden md:inline-flex p-2 rounded-xl text-slate-300 hover:text-[#FF6A00] hover:bg-slate-900 transition-colors cursor-pointer relative"
             title="View Cart"
             aria-label="Cart"
           >
@@ -779,30 +734,6 @@ export const ProductDetailPage: React.FC = () => {
                 </span>
               </div>
 
-              {activeExchange && (
-                <div className="p-3 rounded-xl bg-emerald-950/90 border border-emerald-700 flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2 text-emerald-300 font-bold">
-                    <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>
-                      Effective Price with {activeExchange.brand} {activeExchange.model} Exchange (
-                      -₹{activeExchange.estimatedValue.toLocaleString('en-IN')}):
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-black text-white">
-                      ₹{netPriceAfterExchange.toLocaleString('en-IN')}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setActiveExchange(null)}
-                      className="text-slate-400 hover:text-rose-400 underline text-[11px] cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              )}
-
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 pt-1">
                 <span className="flex items-center gap-1">
                   <Check className="w-3.5 h-3.5 text-emerald-400" /> Inclusive of all GST & taxes
@@ -811,7 +742,7 @@ export const ProductDetailPage: React.FC = () => {
                   <Check className="w-3.5 h-3.5 text-emerald-400" /> Free Insured Express Delivery
                 </span>
                 <span className="flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5 text-emerald-400" /> Cash on Delivery & UPI Available
+                  <Check className="w-3.5 h-3.5 text-emerald-400" /> Instant UPI, NetBanking & Cards Available
                 </span>
               </div>
             </div>
@@ -1030,176 +961,6 @@ export const ProductDetailPage: React.FC = () => {
                 >
                   {pincodeResult.message}
                 </div>
-              )}
-            </div>
-
-            {/* EXCHANGE YOUR OLD PHONE CARD */}
-            <div className="border-2 border-orange-200/80 rounded-2xl p-5 bg-gradient-to-br from-orange-50/40 via-white to-slate-50 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="p-2 rounded-xl bg-[#FF6A00] text-white">
-                      <ArrowRightLeft className="w-4 h-4" />
-                    </span>
-                    <div>
-                      <h3 className="text-sm sm:text-base font-extrabold text-slate-950">
-                        Exchange Your Old Phone
-                      </h3>
-                      <p className="text-xs text-slate-600">
-                        Get an estimated exchange value for your existing smartphone.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsExchangeOpen(!isExchangeOpen)}
-                  className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-[#FF6A00] text-white text-xs font-extrabold transition-colors cursor-pointer"
-                >
-                  {isExchangeOpen ? 'Hide Calculator' : 'Calculate Discount'}
-                </button>
-              </div>
-
-              {isExchangeOpen && (
-                <form
-                  onSubmit={handleCalculateExchange}
-                  className="pt-4 border-t border-slate-200 space-y-4 animate-in fade-in duration-200"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                        1. Existing Brand
-                      </label>
-                      <select
-                        value={exchangeBrand}
-                        onChange={(e) => setExchangeBrand(e.target.value)}
-                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800"
-                      >
-                        <option value="Apple">Apple iPhone</option>
-                        <option value="Samsung">Samsung Galaxy</option>
-                        <option value="OnePlus">OnePlus</option>
-                        <option value="Google">Google Pixel</option>
-                        <option value="Xiaomi">Xiaomi / Redmi</option>
-                        <option value="Vivo">Vivo</option>
-                        <option value="OPPO">OPPO</option>
-                        <option value="Realme">Realme</option>
-                        <option value="Motorola">Motorola</option>
-                        <option value="POCO">POCO / iQOO</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                        2. Phone Model
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={exchangeModel}
-                        onChange={(e) => setExchangeModel(e.target.value)}
-                        placeholder="e.g. iPhone 12 or Galaxy S21"
-                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                        3. Storage Variant
-                      </label>
-                      <select
-                        value={exchangeStorage}
-                        onChange={(e) => setExchangeStorage(e.target.value)}
-                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800"
-                      >
-                        <option value="64GB">64GB</option>
-                        <option value="128GB">128GB</option>
-                        <option value="256GB">256GB</option>
-                        <option value="512GB">512GB</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                        4. Screen Condition
-                      </label>
-                      <select
-                        value={exchangeScreenCond}
-                        onChange={(e) => setExchangeScreenCond(e.target.value as any)}
-                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800"
-                      >
-                        <option value="flawless">Flawless / Scratch-Free</option>
-                        <option value="minor_scratches">Minor Scratches</option>
-                        <option value="cracked">Cracked / Spots on Display</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                        5. Physical Body
-                      </label>
-                      <select
-                        value={exchangeBodyCond}
-                        onChange={(e) => setExchangeBodyCond(e.target.value as any)}
-                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800"
-                      >
-                        <option value="like-new">Like New Body</option>
-                        <option value="good">Good (Normal Light Wear)</option>
-                        <option value="fair">Fair (Dents / Heavy Wear)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                        6. Battery & Functions
-                      </label>
-                      <select
-                        value={exchangeBatteryCond}
-                        onChange={(e) => setExchangeBatteryCond(e.target.value as any)}
-                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800"
-                      >
-                        <option value="healthy">100% Working & Good Battery</option>
-                        <option value="service">Battery Needs Service / Issue</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    <button
-                      type="submit"
-                      disabled={exchangeLoading}
-                      className="px-5 py-2.5 bg-[#FF6A00] hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl cursor-pointer transition-colors"
-                    >
-                      {exchangeLoading ? 'Calculating Valuation...' : 'Get Instant Exchange Quote'}
-                    </button>
-                  </div>
-
-                  {calculatedExchangeValue !== null && (
-                    <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-0.5">
-                        <span className="text-[11px] font-bold uppercase text-emerald-700">
-                          Estimated Trade-In Discount Value
-                        </span>
-                        <p className="text-xl font-black text-emerald-950">
-                          ₹{calculatedExchangeValue.toLocaleString('en-IN')}
-                        </p>
-                        <p className="text-[11px] text-emerald-800">
-                          For {exchangeBrand} {exchangeModel} ({exchangeStorage}) · Verified at doorstep pickup
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleApplyExchangeDiscount}
-                        className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold rounded-xl cursor-pointer shrink-0"
-                      >
-                        Apply ₹{calculatedExchangeValue.toLocaleString('en-IN')} Discount to Purchase
-                      </button>
-                    </div>
-                  )}
-                </form>
               )}
             </div>
           </section>
@@ -1448,21 +1209,21 @@ export const ProductDetailPage: React.FC = () => {
         </section>
       </main>
 
-      {/* STICKY BOTTOM BAR: Variant Price, Official Support & Instant Purchase */}
+      {/* STICKY BOTTOM BAR: Variant Price, Official Support & Instant Purchase (Stacked above MobileBottomNav on < md) */}
       <aside
         aria-label="Sticky Purchase Actions"
-        className="sticky bottom-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 sm:px-6 shadow-2xl"
+        className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3.5 py-2.5 sm:px-6 sm:py-3 shadow-2xl"
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <span className="text-[11px] font-bold text-slate-500">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[11px] font-bold text-slate-500 truncate">
               {selectedProduct.name} ({currentRam} / {currentStorage})
             </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl sm:text-2xl font-black text-slate-950 font-display">
+            <div className="flex items-baseline gap-1.5 sm:gap-2">
+              <span className="text-lg sm:text-2xl font-black text-slate-950 font-display tabular-nums">
                 ₹{currentSellingPrice.toLocaleString('en-IN')}
               </span>
-              <span className="text-xs text-slate-400 line-through">
+              <span className="text-xs text-slate-400 line-through tabular-nums">
                 ₹{currentOriginalPrice.toLocaleString('en-IN')}
               </span>
               <span className="hidden sm:inline text-xs font-bold text-emerald-700">
@@ -1471,7 +1232,7 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={() => openAccountModal('feedback')}
@@ -1486,9 +1247,9 @@ export const ProductDetailPage: React.FC = () => {
               type="button"
               onClick={handleAddToCart}
               disabled={currentStock <= 0}
-              className="py-2.5 px-4 border border-slate-300 hover:bg-slate-100 text-slate-900 rounded-xl text-xs sm:text-sm font-extrabold transition-colors cursor-pointer flex items-center gap-1.5"
+              className="py-2.5 px-3 sm:px-4 border border-slate-300 hover:bg-slate-100 text-slate-900 rounded-xl text-xs sm:text-sm font-extrabold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
             >
-              <ShoppingBag className="w-4 h-4 text-slate-700" />
+              <ShoppingBag className="w-4 h-4 text-slate-700 shrink-0" />
               <span>Add to Cart</span>
             </button>
 
@@ -1496,9 +1257,9 @@ export const ProductDetailPage: React.FC = () => {
               type="button"
               onClick={handleBuyNow}
               disabled={currentStock <= 0}
-              className="py-2.5 px-5 sm:px-7 bg-[#FF6A00] hover:bg-orange-600 text-white rounded-xl text-xs sm:text-sm font-extrabold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+              className="py-2.5 px-4 sm:px-7 bg-[#FF6A00] hover:bg-orange-600 text-white rounded-xl text-xs sm:text-sm font-extrabold transition-all shadow-md flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
-              <Zap className="w-4 h-4 fill-white" />
+              <Zap className="w-4 h-4 fill-white shrink-0" />
               <span>Buy Now</span>
             </button>
           </div>

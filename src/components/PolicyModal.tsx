@@ -65,46 +65,43 @@ export const PolicyModal: React.FC = () => {
         </div>
       )
     },
-    exchange: {
-      title: 'Smartphone Exchange & Trade-In Policy',
-      content: (
-        <div className="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
-          <p>
-            Upgrade to your dream smartphone at a smarter price by trading in your existing smartphone through Phone Bazar's instant Exchange Program.
-          </p>
-          <ul className="list-disc pl-5 space-y-1.5 text-xs">
-            <li>
-              <strong>Instant Online Valuation:</strong> Select your old phone's brand, model, storage, display condition, and battery health to get an instant trade-in quote.
-            </li>
-            <li>
-              <strong>Immediate Price Deduction:</strong> Apply your exchange quote directly to your cart or product page to reduce your payable amount.
-            </li>
-            <li>
-              <strong>Doorstep Handover:</strong> Back up and factory-reset your old device before handing it over to our courier executive when your new Phone Bazar smartphone arrives.
-            </li>
-          </ul>
-        </div>
-      )
-    },
     warranty: {
-      title: '6-Month Store Warranty Policy',
+      title: '6-Month Customer Protection Guarantee & Warranty Policy',
       content: (
         <div className="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
-          <p>
-            All certified pre-owned smartphones include a complimentary{' '}
-            <strong className="text-slate-900">6-Month Phone Bazar Service Warranty</strong>.
-          </p>
+          <div className="p-4 bg-slate-950 text-white border border-slate-800 rounded-2xl space-y-2">
+            <div className="flex items-center gap-2 text-[#FF6A00] font-extrabold text-sm">
+              <ShieldCheck className="w-5 h-5" />
+              <span>6-Month Customer Protection Guarantee</span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+              Shop with confidence! If your smartphone develops an eligible functional issue within{' '}
+              <strong className="text-white">6 months of purchase</strong>, excluding display and
+              battery-related issues, you may choose a{' '}
+              <strong className="text-[#FF6A00]">replacement phone</strong> or receive a{' '}
+              <strong className="text-[#FF6A00]">70% refund of the phone&apos;s purchase price</strong>,
+              subject to our applicable terms and conditions.
+            </p>
+          </div>
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-            <h4 className="font-bold text-slate-900 text-xs">Scope of Warranty:</h4>
+            <h4 className="font-bold text-slate-900 text-xs">Policy Summary &amp; Coverage Details:</h4>
             <ul className="list-disc pl-5 space-y-1 text-xs">
-              <li>Motherboard & processor integrity</li>
-              <li>Display touch sensors & logic boards</li>
-              <li>Charging IC and internal power delivery</li>
-              <li>Camera sensor & autofocus functionality</li>
+              <li>
+                <strong>Coverage Period:</strong> Valid for 6 months from the date of purchase.
+              </li>
+              <li>
+                <strong>Resolution Options:</strong> Eligible customers may opt for a replacement phone or a
+                70% refund of the phone&apos;s purchase price.
+              </li>
+              <li>
+                <strong>Exclusions:</strong> Display and battery-related issues are excluded from this
+                6-month guarantee.
+              </li>
             </ul>
           </div>
           <p className="text-xs">
-            For warranty claims, submit a ticket in the <strong>Feedback & Support</strong> hub or email{' '}
+            For protection guarantee or warranty claims, submit a request in the{' '}
+            <strong>Feedback &amp; Support</strong> hub or email{' '}
             <strong>{settings.officialEmail}</strong>.
           </p>
         </div>
@@ -147,8 +144,14 @@ export const PolicyModal: React.FC = () => {
       content: (
         <div className="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
           <p>
-            By accessing or ordering from Phone Bazar, you agree to our transparent condition grading standards, 7-day replacement guarantee, and 6-month warranty terms.
+            By accessing or ordering from Phone Bazar, you agree to our transparent condition grading standards, 7-day replacement guarantee, and 6-Month Customer Protection Guarantee terms.
           </p>
+          <div className="p-3.5 bg-orange-50 border border-orange-200 rounded-xl text-xs text-slate-800">
+            <strong>6-Month Customer Protection Guarantee:</strong> If your smartphone develops an eligible
+            functional issue within 6 months of purchase, excluding display and battery-related issues, you
+            may choose a replacement phone or receive a 70% refund of the phone&apos;s purchase price,
+            subject to our applicable terms and conditions.
+          </div>
           <p className="text-xs">
             All devices sold are genuine pre-owned smartphones with verified clean IMEIs. Official customer support is available via <strong>{settings.officialEmail}</strong>.
           </p>

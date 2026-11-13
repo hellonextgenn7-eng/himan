@@ -42,16 +42,18 @@ export const Footer: React.FC<FooterProps> = ({ onSelectBrand }) => {
   };
 
   return (
-    <footer className="bg-slate-950 text-slate-300 border-t border-slate-800/80 pt-16 pb-12">
+    <footer className="bg-slate-950 text-slate-300 border-t border-slate-800/80 pt-16 pb-28 md:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         {/* Main 4-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
           {/* Col 1: Brand & Official Business Info (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#FF6A00] flex items-center justify-center text-white font-bold">
-                <Smartphone className="w-5 h-5 text-white" />
-              </div>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/assets/aistudio/WhatsApp_Image_2026-11-13_at_5.05.27_PM_f2187aef.jpeg"
+                alt="Phone Bazar Official Logo"
+                className="w-11 h-11 rounded-xl object-cover border border-slate-800 shadow-md shrink-0"
+              />
               <span className="text-xl font-extrabold text-white font-display tracking-tight">
                 PHONE <span className="text-[#FF6A00]">BAZAR</span>
               </span>
@@ -128,15 +130,6 @@ export const Footer: React.FC<FooterProps> = ({ onSelectBrand }) => {
               </li>
               <li>
                 <button
-                  onClick={() => setIsExchangeModalOpen(true)}
-                  className="hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
-                >
-                  <ArrowRightLeft className="w-3.5 h-3.5 text-[#FF6A00]" />
-                  <span>Exchange Your Phone</span>
-                </button>
-              </li>
-              <li>
-                <button
                   onClick={() => openAccountModal('overview')}
                   className="hover:text-white transition-colors cursor-pointer"
                 >
@@ -189,14 +182,6 @@ export const Footer: React.FC<FooterProps> = ({ onSelectBrand }) => {
               </li>
               <li>
                 <button
-                  onClick={() => setActivePolicy('exchange')}
-                  className="hover:text-white transition-colors cursor-pointer"
-                >
-                  Exchange Policy
-                </button>
-              </li>
-              <li>
-                <button
                   onClick={() => setActivePolicy('shipping')}
                   className="hover:text-white transition-colors cursor-pointer"
                 >
@@ -232,10 +217,10 @@ export const Footer: React.FC<FooterProps> = ({ onSelectBrand }) => {
             <div className="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-1.5 mt-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-white">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span>100% Secure Shopping</span>
+                <span>100% Secure Online Banking & UPI</span>
               </div>
               <p className="text-[11px] text-slate-400">
-                256-bit SSL encrypted checkout. Direct UPI, Cards, NetBanking & Cash on Delivery supported.
+                256-bit SSL encrypted checkout. Instant UPI (GPay, PhonePe, Paytm), NetBanking (All Banks) & Cards supported.
               </p>
             </div>
           </div>
@@ -248,15 +233,15 @@ export const Footer: React.FC<FooterProps> = ({ onSelectBrand }) => {
           </div>
 
           <div className="flex items-center gap-4 text-slate-400 font-semibold">
-            <span>UPI</span>
+            <span>UPI (GPay / PhonePe / Paytm)</span>
+            <span>·</span>
+            <span>NetBanking (All Banks)</span>
             <span>·</span>
             <span>RuPay</span>
             <span>·</span>
             <span>Visa / MasterCard</span>
             <span>·</span>
-            <span>NetBanking</span>
-            <span>·</span>
-            <span>Cash on Delivery</span>
+            <span>IMPS / NEFT</span>
           </div>
         </div>
       </div>

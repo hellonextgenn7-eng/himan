@@ -30,8 +30,8 @@ export const WhyChooseUs: React.FC = () => {
     },
     {
       icon: <Lock className="w-6 h-6 text-rose-500" />,
-      title: 'Cash on Delivery & Razorpay',
-      desc: 'Pay safely using UPI, credit/debit cards with 256-bit encryption, or choose Cash on Delivery at your doorstep.'
+      title: 'Instant UPI & NetBanking',
+      desc: 'Pay safely using Google Pay, PhonePe, Paytm, BHIM UPI, NetBanking (SBI, HDFC, ICICI, Axis), or RuPay/Visa/MasterCard with 256-bit encryption.'
     }
   ];
 
