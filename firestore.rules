@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: Default deny all unknown collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isRegisteredAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (
+          request.auth.token.email_verified == true && (
+            request.auth.token.email == 'biswasmurari63@gmail.com' ||
+            request.auth.token.email == 'biswasrintu62040@gmail.com' ||
+            request.auth.token.email == 'officialnamoindia7@gmail.com' ||
+            request.auth.token.email == 'accenturedevelopers39@gmail.com'
+          )
+        )
+      );
+    }
+
+    function isValidProduct(data) {
+      return data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+        data.brand is string && data.brand.size() >= 1 && data.brand.size() <= 60 &&
+        data.sellingPrice is number && data.sellingPrice >= 0 && data.sellingPrice <= 500000;
+    }
+
+    function isValidOrder(data) {
+      return data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 5000000 &&
+        data.orderStatus is string && data.orderStatus.size() >= 1 && data.orderStatus.size() <= 60;
+    }
+
+    function isValidFeedback(data) {
+      return data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120 &&
+        data.customerEmail is string && data.customerEmail.size() >= 3 && data.customerEmail.size() <= 150 &&
+        data.message is string && data.message.size() >= 1 && data.message.size() <= 4000;
+    }
+
+    // Connection health check endpoint
+    match /test/{docId} {
+      allow get: if true;
+      allow write: if false;
+    }
+
+    // Admins registry: readable and writable by admins only
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && isSignedIn() && (request.auth.uid == adminId || isRegisteredAdmin());
+      allow list: if isRegisteredAdmin();
+      allow create, update, delete: if isValidId(adminId) && isRegisteredAdmin();
+    }
+
+    // Public smartphone catalog: publicly readable by all storefront visitors
+    match /products/{productId} {
+      allow get, list: if true;
+
+      // Allow creating and updating products with validation (Manager portal / Admin)
+      allow create: if isValidId(productId) && isValidProduct(incoming());
+      allow update: if isValidId(productId) && (
+        isValidProduct(incoming()) ||
+        (incoming().sellingPrice is number && incoming().sellingPrice >= 0) ||
+        isRegisteredAdmin()
+      );
+      allow delete: if isValidId(productId);
+    }
+
+    // Orders collection: creation by shoppers, status/tracking updates by customers or admins
+    match /orders/{orderId} {
+      allow get, list: if true;
+      allow create: if isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isValidId(orderId) && isValidOrder(incoming());
+      allow delete: if isValidId(orderId) && isRegisteredAdmin();
+    }
+
+    // Customer Feedback & Support Tickets collection
+    match /feedback/{feedbackId} {
+      allow get, list: if true;
+      allow create: if isValidId(feedbackId) && isValidFeedback(incoming());
+      allow update: if isValidId(feedbackId) && isValidFeedback(incoming());
+      allow delete: if isValidId(feedbackId) && isRegisteredAdmin();
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Remix Phone Bajar.com - Premium Second-Hand Smartphones",
+  "description": "Buy certified pre-owned smartphones at best prices in India. 7-day replacement guarantee, 32-point inspection, and secure checkout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

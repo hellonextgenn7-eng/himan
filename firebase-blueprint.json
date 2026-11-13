@@ -1,0 +1,273 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Certified pre-owned mobile phone listing in Phone Bazar catalog",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique product identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full product display name"
+        },
+        "brand": {
+          "type": "string",
+          "description": "Brand name of the smartphone"
+        },
+        "model": {
+          "type": "string",
+          "description": "Exact model name"
+        },
+        "originalPrice": {
+          "type": "number",
+          "description": "Original retail MRP in INR"
+        },
+        "sellingPrice": {
+          "type": "number",
+          "description": "Discounted selling price in INR"
+        },
+        "discountPercentage": {
+          "type": "number",
+          "description": "Calculated discount percentage"
+        },
+        "ram": {
+          "type": "string",
+          "description": "RAM specification or variant status"
+        },
+        "storage": {
+          "type": "string",
+          "description": "Storage capacity"
+        },
+        "color": {
+          "type": "string",
+          "description": "Primary color"
+        },
+        "availableColors": {
+          "type": "array",
+          "description": "List of color variants"
+        },
+        "condition": {
+          "type": "string",
+          "description": "Refurbished grade: Like New, Excellent, Very Good, Good, or Fair"
+        },
+        "batteryHealth": {
+          "type": "number",
+          "description": "Tested battery health percentage"
+        },
+        "stock": {
+          "type": "number",
+          "description": "Current available inventory units"
+        },
+        "images": {
+          "type": "array",
+          "description": "Up to 5 uncropped photo URLs for the device"
+        },
+        "primaryImage": {
+          "type": "string",
+          "description": "Main showcase image URL"
+        },
+        "description": {
+          "type": "string",
+          "description": "Product marketing and condition description"
+        },
+        "specs": {
+          "type": "object",
+          "description": "Hardware specifications breakdown"
+        },
+        "variants": {
+          "type": "array",
+          "description": "Selectable RAM and storage variants with dynamic pricing"
+        },
+        "accessories": {
+          "type": "array",
+          "description": "Included inbox accessories"
+        },
+        "warrantyInfo": {
+          "type": "string",
+          "description": "Store warranty terms"
+        },
+        "launchYear": {
+          "type": "string",
+          "description": "Original release year"
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Featured deal status"
+        },
+        "isBestDeal": {
+          "type": "boolean",
+          "description": "Best deal status"
+        },
+        "isLatestArrival": {
+          "type": "boolean",
+          "description": "Latest arrival status"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Customer average rating"
+        },
+        "reviewCount": {
+          "type": "number",
+          "description": "Number of customer reviews"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of product creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of last modification"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "brand",
+        "sellingPrice",
+        "condition",
+        "images"
+      ]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Authenticated administrator profile with catalog modification permissions",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication UID"
+        },
+        "email": {
+          "type": "string",
+          "description": "Administrator email address"
+        },
+        "role": {
+          "type": "string",
+          "description": "Admin access role: admin or superadmin"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Account registration date"
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "role"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer smartphone purchase order with variant, exchange, and tracking details",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Order ID (e.g., PB-104829)"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Final payable order amount in INR"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Selected payment method"
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "Payment verification status"
+        },
+        "orderStatus": {
+          "type": "string",
+          "description": "7-stage order fulfillment status"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of order creation"
+        }
+      },
+      "required": [
+        "id",
+        "totalAmount",
+        "orderStatus",
+        "createdAt"
+      ]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "Customer feedback, complaint, or support ticket submitted via customer account",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Feedback ticket ID"
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Customer full name"
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "Customer email address"
+        },
+        "category": {
+          "type": "string",
+          "description": "Feedback or complaint category"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Ticket subject"
+        },
+        "message": {
+          "type": "string",
+          "description": "Detailed message content"
+        },
+        "status": {
+          "type": "string",
+          "description": "Resolution status: Submitted, In Review, or Resolved"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of submission"
+        }
+      },
+      "required": [
+        "id",
+        "customerName",
+        "customerEmail",
+        "category",
+        "message",
+        "status"
+      ]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
+      },
+      "description": "Live smartphone catalog items readable publicly by all shoppers, modifiable by authenticated admins"
+    },
+    "/admins/{adminId}": {
+      "schema": {
+        "$ref": "#/entities/Admin"
+      },
+      "description": "Authorized administrator registry"
+    },
+    "/orders/{orderId}": {
+      "schema": {
+        "$ref": "#/entities/Order"
+      },
+      "description": "Customer orders and shipment tracking records"
+    },
+    "/feedback/{feedbackId}": {
+      "schema": {
+        "$ref": "#/entities/Feedback"
+      },
+      "description": "Customer feedback, complaints, and support tickets"
+    }
+  }
+}
